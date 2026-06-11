@@ -1,6 +1,6 @@
 const MobileSchema = require("../model/mobileModel");
 const foodSchema = require("../model/foodModel");
-const RestaurantSchema = require("../model/restaurantModel/restaurantModel");
+const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
 const { addFoodValidate } = require("../validator/foodvalidate");
 const {
   restaurantValidate,
@@ -9,6 +9,7 @@ const {
 } = require("../validator/restaurantValidate");
 const client = require("../config/twilio");
 const { redis } = require("../lib/redis");
+const fs = require("fs");
 
 class restaurantController {
   async addFood(req, res) {
@@ -413,7 +414,7 @@ class restaurantController {
         preparationTime,
       } = req.body;
 
-      const imageFile = req.file; // ✅ FILE HERE
+      const imageFile = req.file;
 
       if (!imageFile) {
         return res.status(400).json({
@@ -441,7 +442,8 @@ class restaurantController {
         foodType,
         category,
 
-        image: imageFile.buffer.toString("base64"), // OR cloud upload URL
+        // ✅ FIX: diskStorage → use file path OR read file
+        image: fs.readFileSync(imageFile.path, "base64"),
 
         basePrice,
         discountPrice,

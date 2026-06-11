@@ -1,4 +1,4 @@
-const Restaurant = require("../model/restaurantModel/restaurantModel");
+const Restaurant = require("../model/RestaurantModel/restaurantModel");
 const User = require("../model/authModel");
 const { default: mongoose } = require("mongoose");
 
