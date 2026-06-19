@@ -130,6 +130,43 @@ class AdminController {
       });
     }
   }
+
+
+  async rejectedApplication(req, res) {
+    try {
+      const { id } = req.params;
+
+      const restaurant = await Restaurant.findById(id);
+
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found",
+        });
+      }
+
+      if (restaurant.status === "rejected") {
+        return res.status(400).json({
+          success: false,
+          message: "Restaurant is already rejected",
+        });
+      }
+
+      restaurant.status = "rejected";
+      await restaurant.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Application rejected",
+        data: restaurant,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong",
+      });
+    }
+  }
 }
 
 module.exports = new AdminController();

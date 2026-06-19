@@ -10,4 +10,6 @@ router.put(
 
 
 router.patch("/applications/:id/approve", adminController.approveApplication)
+router.patch("/applications/:id/reject", adminController.rejectedApplication)
+
 module.exports = router;
