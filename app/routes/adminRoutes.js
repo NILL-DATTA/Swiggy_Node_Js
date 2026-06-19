@@ -8,4 +8,6 @@ router.put(
   adminController.updateRestaurantStatus,
 );
 
+
+router.patch("/applications/:id/approve", adminController.approveApplication)
 module.exports = router;

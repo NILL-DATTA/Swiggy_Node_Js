@@ -9,7 +9,8 @@ const RestaurantSchema = new mongoose.Schema(
       unique: true,
     },
 
-    // STEP 1 : Basic Info
+
+
     ownerName: {
       type: String,
       trim: true,
@@ -41,19 +42,22 @@ const RestaurantSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // Business Category
     outletType: {
       type: String,
-      enum: ["Restaurant", "Cloud Kitchen", "Cafe", "Bakery", "Sweet Shop"],
+      enum: [
+        "Restaurant",
+        "Cloud Kitchen",
+        "Cafe",
+        "Bakery",
+        "Sweet Shop",
+      ],
     },
 
-    // Food Category
     foodType: {
       type: String,
       enum: ["VEG", "NON_VEG", "BOTH"],
     },
 
-    // STEP 2 : Working Days & Timings
     workingDays: [
       {
         type: String,
@@ -77,16 +81,13 @@ const RestaurantSchema = new mongoose.Schema(
 
       slots: [
         {
-          open: {
-            type: String,
-          },
-
-          close: {
-            type: String,
-          },
+          open: String,
+          close: String,
         },
       ],
     },
+
+
 
     gstin: {
       type: String,
@@ -116,37 +117,38 @@ const RestaurantSchema = new mongoose.Schema(
       uppercase: true,
     },
 
-    // STEP 4 : Menu
-    menus: [
-      {
-        type: mongoose.Schema.Types.Mixed,
-      },
-    ],
-
-    // STEP 5 : Contract
-    contractAccepted: {
-      type: Boolean,
-      default: false,
+    documents: {
+      gstCertificate: String,
+      panCard: String,
+      fssaiLicense: String,
+      cancelledCheque: String,
     },
 
-    onboardingStep: {
-      type: Number,
-      default: 1,
-      min: 1,
-      max: 5,
-    },
+
 
     menus: [
       {
-        itemName: String,
+        itemName: {
+          type: String,
+          required: true,
+        },
+
         description: String,
-        foodType: String,
+
+        foodType: {
+          type: String,
+          enum: ["veg", "non_veg"],
+        },
+
         category: String,
 
+        image: String,
+
         basePrice: Number,
+
         discountPrice: Number,
 
-        image: String,
+        gst: Number,
 
         variants: [
           {
@@ -164,9 +166,80 @@ const RestaurantSchema = new mongoose.Schema(
 
         tags: [String],
 
-        isAvailable: Boolean,
+        isAvailable: {
+          type: Boolean,
+          default: true,
+        },
+
+        enablePreOrder: {
+          type: Boolean,
+          default: false,
+        },
+
+        allowSpecialInstructions: {
+          type: Boolean,
+          default: true,
+        },
+
+        eligibleForOffers: {
+          type: Boolean,
+          default: true,
+        },
+
+        preparationTime: {
+          min: Number,
+          max: Number,
+        },
       },
     ],
+
+
+    contract: {
+      accepted: {
+        type: Boolean,
+        default: false,
+      },
+
+      acceptedAt: Date,
+
+      contractVersion: {
+        type: String,
+        default: "v1.0",
+      },
+
+      reviewedSections: [
+        {
+          type: String,
+        },
+      ],
+
+      signatory: {
+        fullName: String,
+
+        designation: String,
+
+        place: String,
+      },
+
+      declarationAccepted: {
+        type: Boolean,
+        default: false,
+      },
+
+      ipAddress: String,
+
+      deviceInfo: String,
+    },
+
+
+
+    onboardingStep: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 5,
+    },
+
     status: {
       type: String,
       enum: [
@@ -180,11 +253,16 @@ const RestaurantSchema = new mongoose.Schema(
       ],
       default: "draft",
     },
+
+    approvedAt: Date,
+
+    rejectedReason: String,
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 module.exports =
-  mongoose.models.Restaurant || mongoose.model("Restaurant", RestaurantSchema);
+  mongoose.models.Restaurant ||
+  mongoose.model("Restaurant", RestaurantSchema);

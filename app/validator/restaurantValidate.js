@@ -236,8 +236,35 @@ const menuItemValidation = joi.object({
     .required(),
 });
 
+
+const partnerContractSchema = joi.object({
+  fullName: joi.string().trim().required(),
+
+  designation: joi.string().trim().required(),
+
+  place: joi.string().trim().required(),
+
+  date: joi.date().optional(),
+
+  declarationAccepted: joi.boolean()
+    .valid(true)
+    .required(),
+
+  reviewedSections: joi.array()
+    .items(
+      joi.string().valid(
+        "terms_of_service",
+        "commission_payment_terms",
+        "operational_guidelines",
+        "privacy_data_policy"
+      )
+    )
+    .min(4)
+    .required(),
+});
 module.exports = {
   restaurantValidate,
   restaurantDocumentsValidate,
   menuItemValidation,
+  partnerContractSchema
 };

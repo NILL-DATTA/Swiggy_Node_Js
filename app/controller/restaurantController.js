@@ -6,6 +6,7 @@ const {
   restaurantValidate,
   restaurantDocumentsValidate,
   menuItemValidation,
+  partnerContractSchema,
 } = require("../validator/restaurantValidate");
 const client = require("../config/twilio");
 const { redis } = require("../lib/redis");
@@ -436,41 +437,213 @@ class restaurantController {
         });
       }
 
-      existingRestaurant.menus.push({
+      const isExists = existingRestaurant.menus.some(
+        (menu) =>
+          menu.itemName?.toLowerCase() === itemName?.toLowerCase() &&
+          menu.category === category
+      );
+
+      if (isExists) {
+        return res.status(400).json({
+          status: false,
+          message: "Menu item already exists",
+        });
+      }
+
+      console.log("Saving:", imageFile.filename)
+      const newMenu = {
         itemName,
         description,
         foodType,
         category,
 
-        // ✅ FIX: diskStorage → use file path OR read file
-        image: fs.readFileSync(imageFile.path, "base64"),
+        // Save filename only
+        image: imageFile.filename,
 
         basePrice,
         discountPrice,
         gst,
 
-        variants: JSON.parse(variants || "[]"),
-        addons: JSON.parse(addons || "[]"),
-        tags: JSON.parse(tags || "[]"),
+        variants: variants ? JSON.parse(variants) : [],
+        addons: addons ? JSON.parse(addons) : [],
+        tags: tags ? JSON.parse(tags) : [],
 
-        isAvailable,
-        enablePreOrder,
-        allowSpecialInstructions,
-        eligibleForOffers,
+        isAvailable:
+          isAvailable === "true" || isAvailable === true,
 
-        preparationTime: JSON.parse(preparationTime || "{}"),
-      });
+        enablePreOrder:
+          enablePreOrder === "true" || enablePreOrder === true,
+
+        allowSpecialInstructions:
+          allowSpecialInstructions === "true" ||
+          allowSpecialInstructions === true,
+
+        eligibleForOffers:
+          eligibleForOffers === "true" ||
+          eligibleForOffers === true,
+
+        preparationTime: preparationTime
+          ? JSON.parse(preparationTime)
+          : {},
+      };
+
+      existingRestaurant.menus.push(newMenu);
+
+      existingRestaurant.onboardingStep = 3;
 
       await existingRestaurant.save();
 
-      return res.json({
+      const addedMenu =
+        existingRestaurant.menus[
+        existingRestaurant.menus.length - 1
+        ];
+
+
+      return res.status(201).json({
         status: true,
         message: "Menu item added successfully",
+        data: {
+          ...addedMenu.toObject(),
+
+          imageUrl: `${req.protocol}://${req.get(
+            "host"
+          )}/uploads/${addedMenu.image}`,
+        },
       });
     } catch (err) {
       return res.status(500).json({
         status: false,
         message: err.message,
+      });
+    }
+  }
+  async acceptPartnerContract(req, res) {
+    try {
+      const { error, value } = partnerContractSchema.validate(req.body, {
+        abortEarly: false,
+        stripUnknown: true,
+      });
+
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          errors: error.details.map((err) => err.message),
+        });
+      }
+
+      const ownerId = req.user.id;
+
+      const {
+        fullName,
+        designation,
+        date,
+        place,
+        declarationAccepted,
+        reviewedSections,
+      } = value;
+
+      const restaurant = await RestaurantSchema.findOne({
+        owner: ownerId,
+      });
+
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found",
+        });
+      }
+
+      console.log("Restaurant State:", {
+        onboardingStep: restaurant.onboardingStep,
+        detailsCompleted: restaurant.detailsCompleted,
+        documentsCompleted: restaurant.documentsCompleted,
+        menuCompleted: restaurant.menuCompleted,
+        status: restaurant.status,
+      });
+
+      // Contract page access check
+      if (restaurant.onboardingStep < 3) {
+        return res.status(400).json({
+          success: false,
+          message: `Current onboarding step is ${restaurant.onboardingStep}. Complete menu setup first.`,
+        });
+      }
+      // Required onboarding validations
+      if (
+        restaurant.detailsCompleted === false ||
+        restaurant.documentsCompleted === false ||
+        restaurant.menuCompleted === false
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Complete restaurant details, documents and menu setup first",
+        });
+      }
+
+      if (restaurant.contract?.accepted) {
+        return res.status(409).json({
+          success: false,
+          message: "Contract already accepted",
+        });
+      }
+
+      const requiredSections = [
+        "terms_of_service",
+        "commission_payment_terms",
+        "operational_guidelines",
+        "privacy_data_policy",
+      ];
+
+      const allReviewed = requiredSections.every((section) =>
+        reviewedSections.includes(section)
+      );
+
+      if (!allReviewed) {
+        return res.status(400).json({
+          success: false,
+          message: "Please review all contract sections",
+        });
+      }
+
+      restaurant.contract = {
+        accepted: true,
+        acceptedAt: date || new Date(),
+        contractVersion: "v1.0",
+        reviewedSections,
+        signatory: {
+          fullName,
+          designation,
+          place,
+        },
+        declarationAccepted,
+        ipAddress:
+          req.headers["x-forwarded-for"] ||
+          req.socket.remoteAddress,
+        deviceInfo: req.headers["user-agent"],
+      };
+
+      restaurant.onboardingStep = 4;
+      restaurant.status = "review_pending";
+
+      await restaurant.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Partner contract accepted successfully",
+        data: {
+          onboardingStep: restaurant.onboardingStep,
+          status: restaurant.status,
+          contractAccepted: true,
+          acceptedAt: restaurant.contract.acceptedAt,
+        },
+      });
+    } catch (error) {
+      console.error("Contract Error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal server error",
       });
     }
   }

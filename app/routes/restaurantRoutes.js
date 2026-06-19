@@ -9,6 +9,7 @@ const allowRoles = require("../middleware/allowRoles");
 
 router.post("/add/food", AuthCheck, restaurantController.addFood);
 router.get("/list/food", AuthCheck, restaurantController.listFood);
+
 router.post(
   "/auth/apply/restaurant",
   AuthCheck,
@@ -34,5 +35,11 @@ router.post(
   AuthCheck,
   upload.single("image"),
   restaurantController.restaurantMenu,
+);
+
+router.post(
+  "/partner-contract",
+  AuthCheck,
+  restaurantController.acceptPartnerContract
 );
 module.exports = router;
