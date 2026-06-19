@@ -517,6 +517,7 @@ class restaurantController {
       });
     }
   }
+
   async acceptPartnerContract(req, res) {
     try {
       const { error, value } = partnerContractSchema.validate(req.body, {
@@ -647,6 +648,7 @@ class restaurantController {
       });
     }
   }
+
 }
 
 module.exports = new restaurantController();

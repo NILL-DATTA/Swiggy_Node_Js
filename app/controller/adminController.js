@@ -167,6 +167,27 @@ class AdminController {
       });
     }
   }
+
+
+  async approvedRestaurants(req, res) {
+    try {
+      const restaurants = await Restaurant.find({
+        status: "approved",
+      }).sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: restaurants.length,
+        data: restaurants,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong",
+        error: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new AdminController();

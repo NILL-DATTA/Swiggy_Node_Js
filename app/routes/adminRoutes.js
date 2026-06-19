@@ -11,5 +11,8 @@ router.put(
 
 router.patch("/applications/:id/approve", adminController.approveApplication)
 router.patch("/applications/:id/reject", adminController.rejectedApplication)
-
+router.get(
+  "/admin/restaurants/approved",
+  adminController.approvedRestaurants
+);
 module.exports = router;
