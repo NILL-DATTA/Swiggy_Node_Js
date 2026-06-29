@@ -91,25 +91,25 @@ class AdminController {
     }
   }
 
-  async approveApplication(req, res) {
+  async updateApplicationStatus(req, res) {
     try {
       const { id } = req.params;
+      const { status, reason } = req.body;
 
-      const restaurant = await Restaurant.findByIdAndUpdate(
-        id,
-        {
-          status: "approved",
-        },
-        { new: true }
-      );
+      const allowedStatuses = [
+        "approved",
+        "rejected",
+        "suspended",
+      ];
 
-
-      if (restaurant.status == "approved") {
-        return res.status(404).json({
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
           success: false,
-          message: "Restaurant is already approved",
+          message: "Invalid status",
         });
       }
+
+      const restaurant = await Restaurant.findById(id);
 
       if (!restaurant) {
         return res.status(404).json({
@@ -118,19 +118,43 @@ class AdminController {
         });
       }
 
+      if (restaurant.status === status) {
+        return res.status(400).json({
+          success: false,
+          message: `Restaurant is already ${status}`,
+        });
+      }
+
+      restaurant.status = status;
+
+      if (status === "approved") {
+        restaurant.approvedAt = new Date();
+      }
+
+      if (status === "rejected") {
+        restaurant.rejectedReason = reason || "";
+      }
+
+      // These fields are metadata. They store additional information about the status change.
+
+
+      await restaurant.save();
+
       return res.status(200).json({
         success: true,
-        message: "Application approved",
+        message: `Restaurant ${status} successfully`,
         data: restaurant,
       });
+
     } catch (error) {
+      console.error("Update Application Status Error:", error);
+
       return res.status(500).json({
         success: false,
         message: "Something went wrong",
       });
     }
   }
-
 
   async rejectedApplication(req, res) {
     try {
@@ -173,6 +197,27 @@ class AdminController {
     try {
       const restaurants = await Restaurant.find({
         status: "approved",
+      }).sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: restaurants.length,
+        data: restaurants,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong",
+        error: error.message,
+      });
+    }
+  }
+
+
+  async pendingRestaurants(req, res) {
+    try {
+      const restaurants = await Restaurant.find({
+        status: "review_pending",
       }).sort({ createdAt: -1 });
 
       return res.status(200).json({

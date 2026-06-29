@@ -193,7 +193,7 @@ class AuthController {
       const accessToken = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET || "secretKey",
-        { expiresIn: "30m" },
+        { expiresIn: "30s" },
       );
 
       const refreshToken = jwt.sign(
@@ -338,7 +338,7 @@ class AuthController {
 
   async addToCart(req, res) {
     try {
-      // ✅ Auth check
+      //  Auth check
       if (!req.user) {
         return res.status(401).json({
           status: false,
@@ -346,7 +346,7 @@ class AuthController {
         });
       }
 
-      // ✅ Role check (IMPORTANT)
+      //  Role check (IMPORTANT)
       if (req.user.role !== "user") {
         return res.status(403).json({
           status: false,
@@ -380,7 +380,7 @@ class AuthController {
         });
       }
 
-      // ✅ Find food
+      //  Find food
       const food = await Food.findById(foodId);
 
       if (!food) {
@@ -397,7 +397,7 @@ class AuthController {
         });
       }
 
-      // ✅ Find restaurant
+      //  Find restaurant
       const restaurant = await Restaurant.findById(food.restaurant);
 
       if (!restaurant || restaurant.status !== "approved") {
@@ -407,7 +407,7 @@ class AuthController {
         });
       }
 
-      // ✅ Timing check
+      //  Timing check
       if (!restaurant.openingTime || !restaurant.closingTime) {
         return res.status(400).json({
           status: false,
@@ -458,7 +458,7 @@ class AuthController {
         });
       }
 
-      // ✅ Check if item exists
+      //  Check if item exists
       const itemIndex = cart.items.findIndex(
         (item) => item.food.toString() === foodId,
       );
@@ -473,16 +473,16 @@ class AuthController {
         });
       }
 
-      // ✅ Recalculate total
+      //  Recalculate total
       cart.totalAmount = cart.items.reduce(
         (total, item) => total + item.price * item.quantity,
         0,
       );
 
-      // ✅ Save
+      //  Save
       await cart.save();
 
-      // ✅ Populate response
+      //  Populate response
       const updatedCart = await Cart.findById(cart._id)
         .populate("restaurant", "name")
         .populate("items.food", "name price");
@@ -611,6 +611,8 @@ class AuthController {
       });
     }
   }
+
+
   async refreshToken(req, res) {
     try {
       // get refresh token from body
@@ -712,6 +714,8 @@ class AuthController {
       });
     }
   }
+
+  
   async placeOrder(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();

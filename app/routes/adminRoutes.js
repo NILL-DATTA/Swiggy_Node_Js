@@ -7,12 +7,14 @@ router.put(
   "/admin/update-restaurant/:id",
   adminController.updateRestaurantStatus,
 );
+router.patch("/applications/:id/status", adminController.updateApplicationStatus)
 
-
-router.patch("/applications/:id/approve", adminController.approveApplication)
-router.patch("/applications/:id/reject", adminController.rejectedApplication)
 router.get(
   "/admin/restaurants/approved",
   adminController.approvedRestaurants
+);
+router.get(
+  "/admin/restaurants/pending",
+  adminController.pendingRestaurants
 );
 module.exports = router;

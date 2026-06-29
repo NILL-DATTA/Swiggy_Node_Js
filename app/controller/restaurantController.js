@@ -150,15 +150,14 @@ class restaurantController {
           code: String(otp),
         });
 
-      console.log("VERIFY RESPONSE:", verificationCheck);
+      console.log("STATUS:", verificationCheck.status);
 
       if (verificationCheck.status !== "approved") {
         return res.status(400).json({
           status: false,
-          message: "Invalid OTP",
+          message: "Invalid or expired OTP",
         });
       }
-
       restaurant.isPhoneVerified = true;
       await restaurant.save();
 
@@ -182,6 +181,7 @@ class restaurantController {
       const { phone } = req.body;
       const userId = req.user?.id;
 
+      // 1. Auth check
       if (!userId) {
         return res.status(401).json({
           status: false,
@@ -189,6 +189,7 @@ class restaurantController {
         });
       }
 
+      // 2. Phone validation
       if (!phone) {
         return res.status(400).json({
           status: false,
@@ -196,54 +197,79 @@ class restaurantController {
         });
       }
 
-      let formattedPhone = phone;
+      // 3. Format phone number (India default)
+      const formattedPhone = phone.startsWith("+")
+        ? phone
+        : `+91${phone}`;
 
-      if (!formattedPhone.startsWith("+")) {
-        formattedPhone = `+91${formattedPhone}`;
-      }
-
+      // 4. Check existing application
       const existing = await MobileSchema.findOne({
-        $or: [{ owner: userId }, { phone: formattedPhone }],
+        $or: [
+          { owner: userId },
+          { phone: formattedPhone }
+        ],
       });
 
       if (existing) {
         return res.status(400).json({
           status: false,
-          message: "Already applied",
+          message: "Already applied with this phone",
         });
       }
 
-      // SEND OTP
-      const verification = await client.verify.v2
-        .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-        .verifications.create({
-          to: formattedPhone,
-          channel: "sms",
-        });
-
-      console.log("VERIFY SID:", verification.sid);
-
-      // SAVE USER
+      // 5. Create DB record FIRST (better flow)
       const restaurant = await MobileSchema.create({
         phone: formattedPhone,
         owner: userId,
-        verificationSid: verification.sid,
         isPhoneVerified: false,
       });
 
+      // 6. Send OTP via Twilio (IMPORTANT: separate try-catch)
+      let verification;
+
+      try {
+        verification = await client.verify.v2
+          .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+          .verifications.create({
+            to: formattedPhone,
+            channel: "sms",
+          });
+
+        console.log("TWILIO STATUS:", verification.status);
+      } catch (err) {
+        console.log("TWILIO ERROR:", err.code, err.message);
+
+        // Optional: rollback DB entry if OTP fails
+        await MobileSchema.findByIdAndDelete(restaurant._id);
+
+        return res.status(400).json({
+          status: false,
+          message: "Failed to send OTP",
+          error: err.message,
+        });
+      }
+
+      // 7. Final success response
       return res.status(201).json({
         status: true,
         message: "OTP sent successfully",
-        data: restaurant,
+        data: {
+          id: restaurant._id,
+          phone: formattedPhone,
+          otpStatus: verification.status,
+        },
       });
+
     } catch (error) {
-      console.log(error);
+      console.log("SERVER ERROR:", error.message);
+
       return res.status(500).json({
         status: false,
-        message: error.message,
+        message: "Internal Server Error",
       });
     }
   }
+
 
   async restaurantDetails(req, res) {
     try {
