@@ -1,5 +1,3 @@
-//server.js
-
 require("dotenv").config();
 
 const express = require("express");
@@ -7,18 +5,18 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
-// Database connection function
-const connectedDB = require("./app/config/dbcon");
+// DB connection
+const connectDB = require("./app/config/dbcon");
 
-//Routes
+// Routes
 const AuthRoute = require("./app/routes/authRoutes");
 const AdminRoute = require("./app/routes/adminRoutes");
 const restaurantRoute = require("./app/routes/restaurantRoutes");
+
 const app = express();
 
-// ------------------- MIDDLEWARE ------------------- //
+// ---------------- MIDDLEWARE ---------------- //
 
-connectedDB();
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -34,17 +32,27 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ------------------- ROUTES ------------------- //
+// ---------------- ROUTES ---------------- //
 
 app.use(AuthRoute);
-
 app.use(AdminRoute);
-
 app.use(restaurantRoute);
-// ------------------- SERVER ------------------- //
+app.use("/uploads", express.static("uploads"));
+// ---------------- SERVER START ---------------- //
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB(); // 🔥 IMPORTANT: wait for DB
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:4000`);
+    });
+  } catch (err) {
+    console.error("Server startup failed:", err.message);
+    process.exit(1);
+  }
+};
+
+startServer();

@@ -1,5 +1,5 @@
 const MobileSchema = require("../model/mobileModel");
-const foodSchema = require("../model/foodModel");
+const Food = require("../model/foodModel");
 const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
 const { addFoodValidate } = require("../validator/foodvalidate");
 const {
@@ -10,110 +10,12 @@ const {
 } = require("../validator/restaurantValidate");
 const client = require("../config/twilio");
 const { redis } = require("../lib/redis");
+const slugify = require("slugify");
+const path = require("path");
 const fs = require("fs");
 
+
 class restaurantController {
-  async addFood(req, res) {
-    try {
-      const { error, value } = addFoodValidate.validate(req.body);
-
-      if (error) {
-        return res.status(400).json({
-          status: false,
-          message: error.details.map((d) => d.message).join(", "),
-        });
-      }
-
-      const { name, price, category, restaurantId, description } = value;
-
-      if (req.user.role !== "restaurant_owner") {
-        return res.status(403).json({
-          status: false,
-          message: "Only restaurant owner can add food",
-        });
-      }
-
-      // Check restaurant exists
-      const restaurant = await RestaurantSchema.findById(restaurantId);
-
-      if (!restaurant) {
-        return res.status(404).json({
-          status: false,
-          message: "Restaurant not found",
-        });
-      }
-
-      if (restaurant.owner.toString() !== req.user.id) {
-        return res.status(403).json({
-          status: false,
-          message: "You are not owner of this restaurant",
-        });
-      }
-
-      // Create food item
-      const food = await foodSchema.create({
-        name,
-        price,
-        category,
-        description,
-        restaurant: restaurantId,
-      });
-
-      /* ---------------- REDIS PART START ---------------- */
-
-      const cacheKey = `foods:${restaurantId}`;
-
-      await redis.del(cacheKey);
-
-      /* ---------------- REDIS PART END ---------------- */
-
-      return res.status(201).json({
-        status: true,
-        message: "Food item added successfully",
-        data: food,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        status: false,
-        message: "Internal server error",
-        error: err.message,
-      });
-    }
-  }
-  async listFood(req, res) {
-    try {
-      const cacheKey = "all_foods";
-
-      const cachedData = await redis.get(cacheKey);
-
-      if (cachedData) {
-        return res.status(200).json({
-          status: true,
-          message: "Foods fetched from cache",
-          data: cachedData,
-        });
-      }
-
-      const list = await foodSchema.find().sort({ createdAt: -1 });
-
-      await redis.set(cacheKey, list, {
-        ex: 300, // 5 min cache
-      });
-
-      return res.status(200).json({
-        status: true,
-        message: "Foods fetched from database",
-        data: list,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        status: false,
-        message: "Internal server error",
-        error: err.message,
-      });
-    }
-  }
-
   async verifyRestaurantOtp(req, res) {
     try {
       const { phone, otp } = req.body;
@@ -449,6 +351,8 @@ class restaurantController {
           message: "Image is required",
         });
       }
+      console.log("req.file:", req.file);
+      console.log("req.body:", req.body);
 
       const userId = req.user.id;
 
@@ -582,32 +486,19 @@ class restaurantController {
 
       console.log("Restaurant State:", {
         onboardingStep: restaurant.onboardingStep,
-        detailsCompleted: restaurant.detailsCompleted,
-        documentsCompleted: restaurant.documentsCompleted,
-        menuCompleted: restaurant.menuCompleted,
         status: restaurant.status,
       });
 
-      // Contract page access check
-      if (restaurant.onboardingStep < 3) {
+      // ---------------- STEP VALIDATION ----------------
+      // Contract allowed only after documents step
+      if (restaurant.onboardingStep < 2) {
         return res.status(400).json({
           success: false,
-          message: `Current onboarding step is ${restaurant.onboardingStep}. Complete menu setup first.`,
-        });
-      }
-      // Required onboarding validations
-      if (
-        restaurant.detailsCompleted === false ||
-        restaurant.documentsCompleted === false ||
-        restaurant.menuCompleted === false
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Complete restaurant details, documents and menu setup first",
+          message: "Complete restaurant details and documents first",
         });
       }
 
+      // Already accepted check
       if (restaurant.contract?.accepted) {
         return res.status(409).json({
           success: false,
@@ -615,6 +506,7 @@ class restaurantController {
         });
       }
 
+      // ---------------- REQUIRED SECTION CHECK ----------------
       const requiredSections = [
         "terms_of_service",
         "commission_payment_terms",
@@ -633,6 +525,7 @@ class restaurantController {
         });
       }
 
+      // ---------------- SAVE CONTRACT ----------------
       restaurant.contract = {
         accepted: true,
         acceptedAt: date || new Date(),
@@ -650,7 +543,8 @@ class restaurantController {
         deviceInfo: req.headers["user-agent"],
       };
 
-      restaurant.onboardingStep = 4;
+      // ---------------- UPDATE ONBOARDING ----------------
+      restaurant.onboardingStep = 3;
       restaurant.status = "review_pending";
 
       await restaurant.save();
@@ -671,6 +565,175 @@ class restaurantController {
       return res.status(500).json({
         success: false,
         message: error.message || "Internal server error",
+      });
+    }
+  }
+
+  async addFood(req, res) {
+    try {
+      const {
+        restaurantId,
+        itemName,
+        description,
+        foodType,
+        category,
+        cuisine,
+        basePrice,
+        discountPrice,
+        gst,
+        preparationTime,
+        isAvailable,
+        isRecommended,
+        isVeg,
+      } = req.body;
+
+      if (!restaurantId || !itemName || !category || !foodType || !basePrice) {
+        return res.status(400).json({
+          success: false,
+          message: "Required fields are missing.",
+        });
+      }
+
+      const restaurant = await RestaurantSchema.findById(restaurantId);
+
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found.",
+        });
+      }
+
+      const existingFood = await Food.findOne({
+        restaurant: restaurantId,
+        itemName: itemName.trim(),
+      });
+
+      if (existingFood) {
+        return res.status(409).json({
+          success: false,
+          message: "Food already exists.",
+        });
+      }
+
+      let image = "";
+      if (req.file) {
+        image = `/uploads/${req.file.filename}`;
+      }
+
+      let discountPercentage = 0;
+      if (discountPrice && Number(discountPrice) < Number(basePrice)) {
+        discountPercentage = Math.round(
+          ((basePrice - discountPrice) / basePrice) * 100
+        );
+      }
+
+      const food = await Food.create({
+        restaurant: restaurantId,
+        itemName,
+        slug: slugify(itemName, { lower: true, strict: true }),
+        description,
+        foodType,
+        category,
+        cuisine,
+        basePrice,
+        discountPrice,
+        discountPercentage,
+        gst,
+        preparationTime,
+        image,
+        isVeg,
+        isAvailable,
+        isRecommended,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Food added successfully.",
+        data: food,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async deleteFood(req, res) {
+    try {
+      const food = await Food.findById(req.params.id);
+
+      if (!food) {
+        return res.status(404).json({
+          success: false,
+          message: "Food not found",
+        });
+      }
+
+      if (food.image) {
+        const imagePath = path.join(__dirname, "../../", food.image);
+
+        try {
+          fs.unlink(imagePath);
+        } catch (err) {
+          console.log("Image delete error:", err.message);
+        }
+      }
+
+      await Food.findByIdAndDelete(req.params.id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Food deleted successfully",
+      });
+
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
+
+
+  async getAllFoods(req, res) {
+    try {
+      const foods = await Food.find()
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: foods.length,
+        data: foods,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async getFoodById(req, res) {
+    try {
+      const id = req.params.id;
+
+      const food = await Food.findById(id)
+      if (!food) {
+        return res.status(404).json({
+          success: false,
+          message: "Food not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: food,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
       });
     }
   }

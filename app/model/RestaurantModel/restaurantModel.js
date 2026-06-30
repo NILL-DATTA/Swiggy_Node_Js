@@ -7,9 +7,8 @@ const RestaurantSchema = new mongoose.Schema(
       ref: "User",
       required: true,
       unique: true,
+      index: true,
     },
-
-
 
     ownerName: {
       type: String,
@@ -19,6 +18,7 @@ const RestaurantSchema = new mongoose.Schema(
     restaurantName: {
       type: String,
       trim: true,
+      index: true,
     },
 
     location: {
@@ -53,10 +53,6 @@ const RestaurantSchema = new mongoose.Schema(
       ],
     },
 
-    foodType: {
-      type: String,
-      enum: ["VEG", "NON_VEG", "BOTH"],
-    },
 
     workingDays: [
       {
@@ -78,7 +74,6 @@ const RestaurantSchema = new mongoose.Schema(
         type: Boolean,
         default: true,
       },
-
       slots: [
         {
           open: String,
@@ -86,8 +81,6 @@ const RestaurantSchema = new mongoose.Schema(
         },
       ],
     },
-
-
 
     gstin: {
       type: String,
@@ -124,76 +117,6 @@ const RestaurantSchema = new mongoose.Schema(
       cancelledCheque: String,
     },
 
-
-
-    menus: [
-      {
-        itemName: {
-          type: String,
-          required: true,
-        },
-
-        description: String,
-
-        foodType: {
-          type: String,
-          enum: ["veg", "non_veg"],
-        },
-
-        category: String,
-
-        image: String,
-
-        basePrice: Number,
-
-        discountPrice: Number,
-
-        gst: Number,
-
-        variants: [
-          {
-            name: String,
-            price: Number,
-          },
-        ],
-
-        addons: [
-          {
-            name: String,
-            price: Number,
-          },
-        ],
-
-        tags: [String],
-
-        isAvailable: {
-          type: Boolean,
-          default: true,
-        },
-
-        enablePreOrder: {
-          type: Boolean,
-          default: false,
-        },
-
-        allowSpecialInstructions: {
-          type: Boolean,
-          default: true,
-        },
-
-        eligibleForOffers: {
-          type: Boolean,
-          default: true,
-        },
-
-        preparationTime: {
-          min: Number,
-          max: Number,
-        },
-      },
-    ],
-
-
     contract: {
       accepted: {
         type: Boolean,
@@ -215,9 +138,7 @@ const RestaurantSchema = new mongoose.Schema(
 
       signatory: {
         fullName: String,
-
         designation: String,
-
         place: String,
       },
 
@@ -230,8 +151,6 @@ const RestaurantSchema = new mongoose.Schema(
 
       deviceInfo: String,
     },
-
-
 
     onboardingStep: {
       type: Number,
@@ -252,6 +171,7 @@ const RestaurantSchema = new mongoose.Schema(
         "rejected",
       ],
       default: "draft",
+      index: true,
     },
 
     approvedAt: Date,

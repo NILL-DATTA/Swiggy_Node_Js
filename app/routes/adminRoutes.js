@@ -2,6 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 const adminController = require("../controller/adminController");
+const upload = require("../middleware/image");
 
 router.put(
   "/admin/update-restaurant/:id",
@@ -17,4 +18,7 @@ router.get(
   "/admin/restaurants/pending",
   adminController.pendingRestaurants
 );
+
+
+
 module.exports = router;
