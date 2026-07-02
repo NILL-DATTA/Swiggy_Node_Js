@@ -9,7 +9,7 @@ const {
   partnerContractSchema,
 } = require("../validator/restaurantValidate");
 const client = require("../config/twilio");
-const { redis } = require("../lib/redis");
+const  redis  = require("../lib/redis");
 const slugify = require("slugify");
 const path = require("path");
 const fs = require("fs");
@@ -696,15 +696,35 @@ class restaurantController {
   };
 
 
-
-
   async getAllFoods(req, res) {
     try {
-      const foods = await Food.find()
-        .sort({ createdAt: -1 });
+      const CACHE_KEY = "foods:all";
+
+      const cachedFoods = await redis.get(CACHE_KEY);
+
+      if (cachedFoods) {
+        console.log(" Cache Hit");
+
+        return res.status(200).json({
+          success: true,
+          source: "redis",
+          count: cachedFoods.length,
+          data: cachedFoods,
+        });
+      }
+
+      console.log(" Cache Miss");
+
+      const foods = await Food.find().sort({ createdAt: -1 });
+
+      // Cache for 10 sec
+      await redis.set(CACHE_KEY, foods, {
+        ex: 10,
+      });
 
       return res.status(200).json({
         success: true,
+        source: "mongodb",
         count: foods.length,
         data: foods,
       });
@@ -715,6 +735,7 @@ class restaurantController {
       });
     }
   }
+
 
   async getFoodById(req, res) {
     try {
