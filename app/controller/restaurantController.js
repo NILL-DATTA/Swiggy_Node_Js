@@ -696,6 +696,8 @@ class restaurantController {
   };
 
 
+
+
   async getAllFoods(req, res) {
     try {
       const foods = await Food.find()

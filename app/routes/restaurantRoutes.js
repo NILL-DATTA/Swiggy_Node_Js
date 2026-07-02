@@ -7,8 +7,6 @@ const upload = require("../middleware/image");
 const restaurantController = require("../controller/restaurantController.js");
 const allowRoles = require("../middleware/allowRoles");
 
-
-
 router.post(
   "/auth/apply/restaurant",
   AuthCheck,

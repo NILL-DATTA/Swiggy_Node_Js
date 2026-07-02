@@ -19,6 +19,9 @@ router.get(
   adminController.pendingRestaurants
 );
 
+router.delete("/restaurant/delete/:id", adminController.deleteRestaurant);
+
+
 
 
 module.exports = router;

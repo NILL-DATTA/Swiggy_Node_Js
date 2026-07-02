@@ -239,6 +239,38 @@ class AdminController {
   }
 
 
+  async deleteRestaurant  (req, res)  {
+  try {
+    const { id } = req.params;
+
+    const restaurant = await Restaurant.findById(id);
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    await Food.deleteMany({
+      restaurant: restaurant._id,
+    });
+
+    
+    await Restaurant.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Restaurant and all related foods deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 }
 
 
