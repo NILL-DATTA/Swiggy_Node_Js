@@ -9,67 +9,75 @@ const {
   partnerContractSchema,
 } = require("../validator/restaurantValidate");
 const client = require("../config/twilio");
-const  redis  = require("../lib/redis");
+const redis = require("../lib/redis");
 const slugify = require("slugify");
 const path = require("path");
+const Otp = require("../model/otpmodel");
 const fs = require("fs");
+const sendEmailverificationOtp = require("../helper/sendEmailverification");
+
+const { default: mongoose } = require("mongoose");
 
 
 class restaurantController {
   async verifyRestaurantOtp(req, res) {
     try {
-      const { phone, otp } = req.body;
+      const { email, otp } = req.body;
 
-      if (!phone || !otp) {
+      if (!email || !otp) {
         return res.status(400).json({
           status: false,
-          message: "Phone and OTP required",
+          message: "Email and OTP are required",
         });
       }
 
-      let formattedPhone = phone;
-
-      if (!formattedPhone.startsWith("+")) {
-        formattedPhone = `+91${formattedPhone}`;
-      }
-
       const restaurant = await MobileSchema.findOne({
-        phone: formattedPhone,
+        email: email.toLowerCase(),
       });
 
       if (!restaurant) {
         return res.status(404).json({
           status: false,
-          message: "Restaurant not found",
+          message: "Restaurant application not found",
         });
       }
 
-      // Twilio VERIFY CHECK (CORRECT METHOD)
-      const verificationCheck = await client.verify.v2
-        .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-        .verificationChecks.create({
-          to: formattedPhone,
-          code: String(otp),
-        });
+      const otpData = await Otp.findOne({
+        userId: restaurant._id.toString(),
+        otp: otp.toString(),
+      });
 
-      console.log("STATUS:", verificationCheck.status);
-
-      if (verificationCheck.status !== "approved") {
+      if (!otpData) {
         return res.status(400).json({
           status: false,
-          message: "Invalid or expired OTP",
+          message: "Invalid OTP",
         });
       }
-      restaurant.isPhoneVerified = true;
+
+      if (otpData.expiresAt < new Date()) {
+        await Otp.deleteOne({ _id: otpData._id });
+
+        return res.status(400).json({
+          status: false,
+          message: "OTP has expired",
+        });
+      }
+
+      restaurant.isEmailVerified = true;
       await restaurant.save();
+
+      await Otp.deleteOne({
+        _id: otpData._id,
+      });
 
       return res.status(200).json({
         status: true,
-        message: "Phone verified successfully",
+        message: "Email verified successfully",
         data: restaurant,
       });
+
     } catch (error) {
-      console.log("VERIFY ERROR:", error);
+      console.log(error);
 
       return res.status(500).json({
         status: false,
@@ -80,10 +88,10 @@ class restaurantController {
 
   async applyRestaurant(req, res) {
     try {
-      const { phone } = req.body;
+      const { email } = req.body;
       const userId = req.user?.id;
 
-      // 1. Auth check
+      // Auth Check
       if (!userId) {
         return res.status(401).json({
           status: false,
@@ -91,83 +99,58 @@ class restaurantController {
         });
       }
 
-      // 2. Phone validation
-      if (!phone) {
+      // Email Check
+      if (!email) {
         return res.status(400).json({
           status: false,
-          message: "Phone is required",
+          message: "Email is required",
         });
       }
 
-      // 3. Format phone number (India default)
-      const formattedPhone = phone.startsWith("+")
-        ? phone
-        : `+91${phone}`;
-
-      // 4. Check existing application
+      // Already Applied?
       const existing = await MobileSchema.findOne({
         $or: [
           { owner: userId },
-          { phone: formattedPhone }
+          { email: email.toLowerCase() },
         ],
       });
 
       if (existing) {
         return res.status(400).json({
           status: false,
-          message: "Already applied with this phone",
+          message: "Already applied with this email",
         });
       }
 
-      // 5. Create DB record FIRST (better flow)
+      // Create Application
       const restaurant = await MobileSchema.create({
-        phone: formattedPhone,
         owner: userId,
-        isPhoneVerified: false,
+        email: email.toLowerCase(),
+        isEmailVerified: false,
       });
 
-      // 6. Send OTP via Twilio (IMPORTANT: separate try-catch)
-      let verification;
+      // Send OTP Email
+      await sendEmailverificationOtp({
+        _id: restaurant._id,
+        email: restaurant.email,
+        full_name: "Restaurant Owner",
+      });
 
-      try {
-        verification = await client.verify.v2
-          .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-          .verifications.create({
-            to: formattedPhone,
-            channel: "sms",
-          });
-
-        console.log("TWILIO STATUS:", verification.status);
-      } catch (err) {
-        console.log("TWILIO ERROR:", err.code, err.message);
-
-        // Optional: rollback DB entry if OTP fails
-        await MobileSchema.findByIdAndDelete(restaurant._id);
-
-        return res.status(400).json({
-          status: false,
-          message: "Failed to send OTP",
-          error: err.message,
-        });
-      }
-
-      // 7. Final success response
       return res.status(201).json({
         status: true,
         message: "OTP sent successfully",
         data: {
           id: restaurant._id,
-          phone: formattedPhone,
-          otpStatus: verification.status,
+          email: restaurant.email,
         },
       });
 
     } catch (error) {
-      console.log("SERVER ERROR:", error.message);
+      console.log(error);
 
       return res.status(500).json({
         status: false,
-        message: "Internal Server Error",
+        message: error.message,
       });
     }
   }
@@ -572,7 +555,6 @@ class restaurantController {
   async addFood(req, res) {
     try {
       const {
-        restaurantId,
         itemName,
         description,
         foodType,
@@ -587,14 +569,10 @@ class restaurantController {
         isVeg,
       } = req.body;
 
-      if (!restaurantId || !itemName || !category || !foodType || !basePrice) {
-        return res.status(400).json({
-          success: false,
-          message: "Required fields are missing.",
-        });
-      }
-
-      const restaurant = await RestaurantSchema.findById(restaurantId);
+      // Find logged-in owner's restaurant
+      const restaurant = await RestaurantSchema.findOne({
+        owner: req.user.id,
+      });
 
       if (!restaurant) {
         return res.status(404).json({
@@ -603,9 +581,27 @@ class restaurantController {
         });
       }
 
+      // Restaurant must be approved
+      if (restaurant.status !== "approved") {
+        return res.status(403).json({
+          success: false,
+          message: "Only approved restaurants can add food.",
+        });
+      }
+
+      // Food name required
+      if (!itemName || !itemName.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Food name is required.",
+        });
+      }
+
+      // Duplicate check
       const existingFood = await Food.findOne({
-        restaurant: restaurantId,
+        restaurant: restaurant._id,
         itemName: itemName.trim(),
+        isDeleted: false,
       });
 
       if (existingFood) {
@@ -615,22 +611,32 @@ class restaurantController {
         });
       }
 
-      let image = "";
-      if (req.file) {
-        image = `/uploads/${req.file.filename}`;
-      }
+      // Image
+      const image = req.file ? `/uploads/${req.file.filename}` : "";
 
+      // Discount %
       let discountPercentage = 0;
-      if (discountPrice && Number(discountPrice) < Number(basePrice)) {
+
+      if (
+        discountPrice &&
+        Number(discountPrice) > 0 &&
+        Number(discountPrice) < Number(basePrice)
+      ) {
         discountPercentage = Math.round(
-          ((basePrice - discountPrice) / basePrice) * 100
+          ((Number(basePrice) - Number(discountPrice)) /
+            Number(basePrice)) *
+          100
         );
       }
 
+      // Create Food
       const food = await Food.create({
-        restaurant: restaurantId,
-        itemName,
-        slug: slugify(itemName, { lower: true, strict: true }),
+        restaurant: restaurant._id,
+        itemName: itemName.trim(),
+        slug: slugify(itemName, {
+          lower: true,
+          strict: true,
+        }),
         description,
         foodType,
         category,
@@ -652,6 +658,8 @@ class restaurantController {
         data: food,
       });
     } catch (error) {
+      console.error(error);
+
       return res.status(500).json({
         success: false,
         message: error.message,
@@ -695,39 +703,82 @@ class restaurantController {
     }
   };
 
-
   async getAllFoods(req, res) {
     try {
-      const CACHE_KEY = "foods:all";
+      const restaurant = await RestaurantSchema.findOne({
+        owner: req.user.id,
+      });
 
-      const cachedFoods = await redis.get(CACHE_KEY);
-
-      if (cachedFoods) {
-        console.log(" Cache Hit");
-
-        return res.status(200).json({
-          success: true,
-          source: "redis",
-          count: cachedFoods.length,
-          data: cachedFoods,
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found.",
         });
       }
 
-      console.log(" Cache Miss");
+      const foods = await Food.aggregate([
+        {
+          $match: {
+            restaurant: restaurant._id,
+            isDeleted: false,
+          },
+        },
 
-      const foods = await Food.find().sort({ createdAt: -1 });
+        {
+          $lookup: {
+            from: "restaurants",
+            localField: "restaurant",
+            foreignField: "_id",
+            as: "restaurant",
+          },
+        },
 
-      // Cache for 10 sec
-      await redis.set(CACHE_KEY, foods, {
-        ex: 10,
-      });
+        {
+          $unwind: "$restaurant",
+        },
+
+        {
+          $project: {
+            _id: 1,
+            itemName: 1,
+            slug: 1,
+            description: 1,
+            image: 1,
+            foodType: 1,
+            isVeg: 1,
+            category: 1,
+            cuisine: 1,
+            basePrice: 1,
+            discountPrice: 1,
+            discountPercentage: 1,
+            gst: 1,
+            preparationTime: 1,
+            rating: 1,
+            totalRatings: 1,
+            totalOrders: 1,
+            isAvailable: 1,
+            isRecommended: 1,
+            createdAt: 1,
+
+            restaurantName: "$restaurant.restaurantName",
+            restaurantEmail: "$restaurant.email",
+            restaurantPhone: "$restaurant.phone",
+          },
+        },
+
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+      ]);
 
       return res.status(200).json({
         success: true,
-        source: "mongodb",
         count: foods.length,
         data: foods,
       });
+
     } catch (error) {
       return res.status(500).json({
         success: false,
@@ -735,7 +786,6 @@ class restaurantController {
       });
     }
   }
-
 
   async getFoodById(req, res) {
     try {
@@ -757,6 +807,37 @@ class restaurantController {
       return res.status(500).json({
         success: false,
         message: error.message,
+      });
+    }
+  }
+
+
+  async getMyRestaurant(req, res) {
+    try {
+      const restaurant = await RestaurantSchema.findOne({
+        owner: req.user.id,
+      });
+
+      if (!restaurant) {
+        return res.status(200).json({
+          status: false,
+          hasRestaurant: false,
+          message: "Restaurant not found",
+        });
+      }
+
+      return res.status(200).json({
+        status: true,
+        hasRestaurant: true,
+        message: "Restaurant fetched successfully",
+        data: restaurant,
+      });
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).json({
+        status: false,
+        message: "Internal server error",
       });
     }
   }

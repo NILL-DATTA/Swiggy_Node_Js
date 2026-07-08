@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const MobileSchema = new mongoose.Schema(
   {
-    phone: {
+    email: {
       type: String,
       required: true,
     },
@@ -26,4 +26,4 @@ const MobileSchema = new mongoose.Schema(
   },
 );
 
-module.exports = mongoose.model("mobile", MobileSchema);
+module.exports = mongoose.model("email", MobileSchema);

@@ -262,9 +262,42 @@ const partnerContractSchema = joi.object({
     .min(4)
     .required(),
 });
+
+
+
+const addFoodSchema = joi.object({
+  restaurantId: joi.string().required(),
+  itemName: joi.string().trim().min(2).max(100).required(),
+  description: joi.string().allow("", null),
+
+  foodType: joi.string()
+    .valid("Veg", "Non-Veg", "Egg")
+    .required(),
+
+  category: joi.string().required(),
+  cuisine: joi.string().allow("", null),
+
+  basePrice: joi.number().positive().required(),
+
+  discountPrice: joi.number()
+    .min(0)
+    .less(joi.ref("basePrice"))
+    .allow(null),
+
+  gst: joi.number().min(0).max(100).allow(null),
+
+  preparationTime: joi.number().min(0).allow(null),
+
+  isAvailable: joi.boolean().default(true),
+  isRecommended: joi.boolean().default(false),
+  isVeg: joi.boolean().default(false),
+});
+
+
 module.exports = {
   restaurantValidate,
   restaurantDocumentsValidate,
   menuItemValidation,
-  partnerContractSchema
+  partnerContractSchema,
+  addFoodSchema
 };

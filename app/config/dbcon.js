@@ -4,7 +4,7 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
 
-    console.log("MongoDB Connected ✔");
+    console.log("MongoDB Connected ");
     console.log("State:", mongoose.connection.readyState); 
 
     return conn;
@@ -15,3 +15,7 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+
+
+
+
