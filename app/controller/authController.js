@@ -715,7 +715,7 @@ class AuthController {
     }
   }
 
-  
+
   async placeOrder(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();

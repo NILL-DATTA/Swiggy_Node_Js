@@ -6,7 +6,8 @@ const AuthCheck = require("../middleware/authMiddleware");
 const upload = require("../middleware/image");
 const restaurantController = require("../controller/restaurantController.js");
 const allowRoles = require("../middleware/allowRoles");
-const { restaurantOwner } = require("../middleware/restaurantMiddleware.js")
+const { restaurantOwner } = require("../middleware/restaurantMiddleware.js");
+const verifyRestaurant = require("../middleware/verifyrestaurant.js");
 router.post(
   "/auth/apply/restaurant",
   AuthCheck,
@@ -56,4 +57,12 @@ router.get(
   restaurantController.getMyRestaurant
 );
 
+
+
+router.post(
+  "/food/edit/:id",
+  AuthCheck,
+  verifyRestaurant,
+  restaurantController.editmenuList
+);
 module.exports = router;

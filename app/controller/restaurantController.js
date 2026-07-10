@@ -155,7 +155,6 @@ class restaurantController {
     }
   }
 
-
   async restaurantDetails(req, res) {
     try {
       const { error, value } = restaurantValidate.validate(req.body);
@@ -840,6 +839,71 @@ class restaurantController {
         message: "Internal server error",
       });
     }
+  }
+
+
+  async editmenuList(req, res) {
+    try {
+
+      const menuid = req.params.id
+
+      console.log("Menu ID:", req.params.id);
+      console.log("Logged User:", req.user);
+
+      const food = await Food.findById(req.params.id);
+      console.log("Food:", food);
+
+      const menufind = await Food.findOne({
+        _id: menuid,
+        restaurant: req.restaurant._id
+      })
+
+      console.log("Menu Find:", menufind);
+
+      if (!menufind) {
+        return res.status(404).json({
+          success: false,
+          message: "Menu not find"
+        })
+      }
+
+
+
+      menufind.itemName = req.body.itemName ?? menufind.itemName;
+      menufind.description = req.body.description ?? menufind.description;
+      menufind.foodType = req.body.foodType ?? menufind.foodType;
+      menufind.isVeg = req.body.isVeg ?? menufind.isVeg;
+      menufind.category = req.body.category ?? menufind.category;
+      menufind.cuisine = req.body.cuisine ?? menufind.cuisine;
+      menufind.basePrice = req.body.basePrice ?? menufind.basePrice;
+      menufind.discountPrice = req.body.discountPrice ?? menufind.discountPrice;
+      menufind.discountPercentage = req.body.discountPercentage ?? menufind.discountPercentage;
+      menufind.gst = req.body.gst ?? menufind.gst;
+      menufind.preparationTime = req.body.preparationTime ?? menufind.preparationTime;
+      menufind.isAvailable = req.body.isAvailable ?? menufind.isAvailable;
+      menufind.isRecommended = req.body.isRecommended ?? menufind.isRecommended;
+      if (req.file) {
+        menufind.image = req.file.path;
+      }
+
+      // console.log("Menu ID:", menufind);
+      // console.log("User ID:", req.user.id);
+
+      await menufind.save()
+
+      return res.status(200).json({
+        status: true,
+        message: "Menu Updated Successfully",
+        data: menufind
+      })
+
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        message: err.message,
+      });
+    }
+
   }
 
 }

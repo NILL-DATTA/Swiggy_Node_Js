@@ -4,7 +4,7 @@ const AuthCheck = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    console.log(authHeader, "authHeader");
+    console.log("AuthCheck");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         status: false,
