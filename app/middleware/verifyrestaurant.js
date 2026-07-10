@@ -3,7 +3,7 @@ const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
 
 
 const verifyRestaurant = async (req, res, next) => {
-
+console.log("verifyRestaurant")
     try {
 
         const restaurant = await RestaurantSchema.findOne({
@@ -18,6 +18,8 @@ const verifyRestaurant = async (req, res, next) => {
         }
 
         req.restaurant = restaurant;
+        console.log("User ID:", req.user.id);
+        console.log("Restaurant From DB:", restaurant);
 
         next();
     } catch (err) {

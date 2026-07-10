@@ -858,7 +858,10 @@ class restaurantController {
         restaurant: req.restaurant._id
       })
 
-      console.log("Menu Find:", menufind);
+      console.log("Menu Find:", req.restaurant._id);
+      const menu = await Food.findById(menuid);
+      console.log("Menu Restaurant :", menu.restaurant.toString());
+      console.log("Req Restaurant  :", req.restaurant._id.toString());
 
       if (!menufind) {
         return res.status(404).json({
