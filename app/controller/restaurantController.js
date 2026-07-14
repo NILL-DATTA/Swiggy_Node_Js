@@ -842,13 +842,11 @@ class restaurantController {
   }
 
 
-  async editmenuList(req, res) {
+  async editmenu(req, res) {
     try {
 
       const menuid = req.params.id
 
-      console.log("Menu ID:", req.params.id);
-      console.log("Logged User:", req.user);
 
       const food = await Food.findById(req.params.id);
       console.log("Food:", food);
@@ -870,8 +868,6 @@ class restaurantController {
         })
       }
 
-
-
       menufind.itemName = req.body.itemName ?? menufind.itemName;
       menufind.description = req.body.description ?? menufind.description;
       menufind.foodType = req.body.foodType ?? menufind.foodType;
@@ -886,11 +882,8 @@ class restaurantController {
       menufind.isAvailable = req.body.isAvailable ?? menufind.isAvailable;
       menufind.isRecommended = req.body.isRecommended ?? menufind.isRecommended;
       if (req.file) {
-        menufind.image = req.file.path;
+        menufind.image = `/uploads/${req.file.filename}`;
       }
-
-      // console.log("Menu ID:", menufind);
-      // console.log("User ID:", req.user.id);
 
       await menufind.save()
 
@@ -901,13 +894,16 @@ class restaurantController {
       })
 
     } catch (err) {
+      console.error(err);
       return res.status(500).json({
         status: false,
         message: err.message,
+        stack: err.stack,
       });
     }
 
   }
+
 
 }
 

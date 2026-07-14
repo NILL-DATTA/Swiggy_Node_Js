@@ -16,13 +16,13 @@ const foodSchema = new mongoose.Schema(
 
     },
 
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
+    // slug: {
+    //   type: String,
+    //   required: true,
+    //   unique: true,
+    //   lowercase: true,
 
-    },
+    // },
 
     description: {
       type: String,

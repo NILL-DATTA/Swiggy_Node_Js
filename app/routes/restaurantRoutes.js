@@ -38,6 +38,10 @@ router.post(
 
 router.post(
   "/add-food",
+  (req, res, next) => {
+    console.log("1. Route");
+    next();
+  },
   AuthCheck,
   restaurantOwner,
   upload.single("image"),
@@ -48,7 +52,7 @@ router.delete("/food/:id", restaurantOwner, restaurantController.deleteFood);
 
 router.get("/food/list", AuthCheck, restaurantOwner, restaurantController.getAllFoods);
 
-router.get("/food/details/:id", restaurantOwner, restaurantController.getFoodById);
+router.get("/food/details/:id", AuthCheck, restaurantOwner, restaurantController.getFoodById);
 
 router.get(
   "/my-restaurant",
@@ -57,12 +61,13 @@ router.get(
   restaurantController.getMyRestaurant
 );
 
-
-
 router.post(
   "/food/edit/:id",
   AuthCheck,
   verifyRestaurant,
-  restaurantController.editmenuList
+  restaurantOwner,
+  upload.single("image"),
+  restaurantController.editmenu
 );
+
 module.exports = router;
