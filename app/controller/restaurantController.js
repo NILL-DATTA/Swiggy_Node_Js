@@ -17,6 +17,7 @@ const fs = require("fs");
 const sendEmailverificationOtp = require("../helper/sendEmailverification");
 
 const { default: mongoose } = require("mongoose");
+const { getCache, setCache } = require("../../services/redisservice");
 
 
 class restaurantController {
@@ -715,6 +716,22 @@ class restaurantController {
         });
       }
 
+      // Redis Cache Key
+      const cacheKey = `foods:${restaurant._id}`;
+
+      // Try to get data from Redis
+      const cachedFoods = await getCache(cacheKey);
+
+      if (cachedFoods) {
+        return res.status(200).json({
+          success: true,
+          fromCache: true,
+          count: cachedFoods.length,
+          data: cachedFoods,
+        });
+      }
+
+
       const foods = await Food.aggregate([
         {
           $match: {
@@ -722,7 +739,6 @@ class restaurantController {
             isDeleted: false,
           },
         },
-
         {
           $lookup: {
             from: "restaurants",
@@ -731,11 +747,9 @@ class restaurantController {
             as: "restaurant",
           },
         },
-
         {
           $unwind: "$restaurant",
         },
-
         {
           $project: {
             _id: 1,
@@ -764,7 +778,6 @@ class restaurantController {
             restaurantPhone: "$restaurant.phone",
           },
         },
-
         {
           $sort: {
             createdAt: -1,
@@ -772,8 +785,10 @@ class restaurantController {
         },
       ]);
 
+      await setCache(cacheKey, foods, 60);
       return res.status(200).json({
         success: true,
+        fromCache: false,
         count: foods.length,
         data: foods,
       });
@@ -785,6 +800,7 @@ class restaurantController {
       });
     }
   }
+
 
   async getFoodById(req, res) {
     try {
