@@ -120,6 +120,9 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 
 
+
+// DB connection
+
 const AuthRoute = require("./app/routes/authRoutes");
 const AdminRoute = require("./app/routes/adminRoutes");
 const restaurantRoute = require("./app/routes/restaurantRoutes");
@@ -139,6 +142,13 @@ app.use(cors({
   origin: "http://localhost:3000",
   credentials: true,
 }));
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -148,6 +158,23 @@ app.use(AuthRoute);
 app.use(AdminRoute);
 app.use(restaurantRoute);
 app.use(userRoute);
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+app.use(express.static(path.join(__dirname, "public")));
+
+// ---------------- SWAGGER ---------------- //
+
+
+// ---------------- ROUTES ---------------- //
+
+app.use(AuthRoute);
+app.use(AdminRoute);
+app.use(restaurantRoute);
+
+app.use("/uploads", express.static("uploads"));
+
+// ---------------- SERVER START ---------------- //
 
 // Server
 const PORT = process.env.PORT || 4000;
@@ -160,6 +187,17 @@ const startServer = async () => {
   server.listen(PORT, () => {
     console.log(`Server Running on ${PORT}`);
   });
+  try {
+    await connectDB();
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`Swagger Docs: http://localhost:${PORT}/api-docs`);
+    });
+  } catch (err) {
+    console.error("Server startup failed:", err.message);
+    process.exit(1);
+  }
 };
 
 startServer();

@@ -29,6 +29,8 @@
     "slugify": "^1.6.9",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "twilio": "^6.0.2",
     "web-push": "^3.6.7",
     "winston": "^3.19.0"
