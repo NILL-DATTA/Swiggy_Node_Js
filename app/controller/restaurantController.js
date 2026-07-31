@@ -1052,23 +1052,19 @@ class restaurantController {
   }
 
   async savePushSubscription(req, res) {
-
     try {
 
       const { subscription } = req.body;
-
 
       console.log(
         "BODY:",
         JSON.stringify(req.body, null, 2)
       );
 
-
       console.log(
         "SUBSCRIPTION:",
         JSON.stringify(subscription, null, 2)
       );
-
 
       const restaurant =
         await RestaurantSchema.findByIdAndUpdate(
@@ -1080,7 +1076,6 @@ class restaurantController {
             new: true
           }
         );
-
 
       console.log(
         "AFTER SAVE:",
