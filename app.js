@@ -1,58 +1,165 @@
+// require("dotenv").config();
+
+// const express = require("express");
+// const http = require("http");
+// const path = require("path");
+// const cookieParser = require("cookie-parser");
+// const cors = require("cors");
+// const { Server } = require("socket.io");
+
+// const connectDB = require("./app/config/dbcon");
+
+
+// const AuthRoute = require("./app/routes/authRoutes");
+// const AdminRoute = require("./app/routes/adminRoutes");
+// const restaurantRoute = require("./app/routes/restaurantRoutes");
+// const userRoute = require("./app/routes/userRoutes");
+
+// const app = express();
+
+
+// const server = http.createServer(app);
+
+// const io = new Server(server, {
+//   cors: {
+//     origin: "http://localhost:3000",
+//     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+//     credentials: true,
+//   },
+// });
+
+// app.use((req, res, next) => {
+//   req.io = io;
+//   next();
+// });
+
+// const onlineRestaurants = new Map();
+
+// io.on("connection", (socket) => {
+//   console.log(`Socket Connected: ${socket.id}`);
+
+//   socket.on("restaurant:join", (restaurantId) => {
+//     onlineRestaurants.set(restaurantId, socket.id);
+
+//     console.log(`Restaurant Online: ${restaurantId}`);
+
+//     console.log("Online Restaurants:");
+//     console.log(onlineRestaurants);
+//   });
+
+
+//   socket.on("disconnect", () => {
+//     console.log(` Socket Disconnected: ${socket.id}`);
+
+//     for (const [restaurantId, socketId] of onlineRestaurants.entries()) {
+//       if (socketId === socket.id) {
+//         onlineRestaurants.delete(restaurantId);
+
+//         console.log(`Restaurant Offline: ${restaurantId}`);
+//         break;
+//       }
+//     }
+
+//     console.log("Online Restaurants:");
+//     console.log(onlineRestaurants);
+//   });
+// });
+
+// // ---------------- MIDDLEWARE ---------------- //
+
+// app.use(
+//   cors({
+//     origin: "http://localhost:3000",
+//     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+//     credentials: true,
+//   })
+// );
+
+// app.use(cookieParser());
+// app.use(express.json());
+
+// app.set("view engine", "ejs");
+// app.set("views", path.join(__dirname, "views"));
+
+// app.use(express.static(path.join(__dirname, "public")));
+// app.use("/uploads", express.static("uploads"));
+
+// // ---------------- ROUTES ---------------- //
+
+// app.use(AuthRoute);
+// app.use(AdminRoute);
+// app.use(restaurantRoute);
+// app.use(userRoute);
+
+// // ---------------- START SERVER ---------------- //
+
+// const PORT = process.env.PORT || 4000;
+
+// const startServer = async () => {
+//   try {
+//     await connectDB();
+
+//     server.listen(PORT, () => {
+//       console.log(`Server running at http://localhost:${PORT}`);
+//     });
+//   } catch (err) {
+//     console.error("Server startup failed:", err.message);
+//     process.exit(1);
+//   }
+// };
+
+// startServer();
+
 require("dotenv").config();
 
 const express = require("express");
-const path = require("path");
-const cookieParser = require("cookie-parser");
+const http = require("http");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
-// DB connection
-const connectDB = require("./app/config/dbcon");
+const path = require("path");
 
-// Routes
+
 const AuthRoute = require("./app/routes/authRoutes");
 const AdminRoute = require("./app/routes/adminRoutes");
 const restaurantRoute = require("./app/routes/restaurantRoutes");
+const userRoute = require("./app/routes/userRoutes");
+
+const connectDB = require("./config/dbcon");
+const { initSocket } = require("./app/socket/socket");
 
 const app = express();
 
-// ---------------- MIDDLEWARE ---------------- //
+const server = http.createServer(app);
 
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true,
-  })
-);
+initSocket(server);
 
-app.use(cookieParser());
+
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true,
+}));
+
 app.use(express.json());
+app.use(cookieParser());
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
-
-// ---------------- ROUTES ---------------- //
-
+// Routes
 app.use(AuthRoute);
 app.use(AdminRoute);
 app.use(restaurantRoute);
-app.use("/uploads", express.static("uploads"));
-// ---------------- SERVER START ---------------- //
+app.use(userRoute);
 
+// Server
 const PORT = process.env.PORT || 4000;
-
+app.set("views", path.join(__dirname, "views"));
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static("uploads"));
 const startServer = async () => {
-  try {
-    await connectDB(); // 🔥 IMPORTANT: wait for DB
+  await connectDB();
 
-    app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:4000`);
-    });
-  } catch (err) {
-    console.error("Server startup failed:", err.message);
-    process.exit(1);
-  }
+  server.listen(PORT, () => {
+    console.log(`Server Running on ${PORT}`);
+  });
 };
 
 startServer();

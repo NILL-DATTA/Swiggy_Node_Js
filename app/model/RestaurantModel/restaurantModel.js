@@ -159,6 +159,38 @@ const RestaurantSchema = new mongoose.Schema(
       max: 5,
     },
 
+    isOpen: {
+      type: Boolean,
+      default: true,
+    },
+
+    pushSubscription: {
+
+      endpoint: {
+        type: String,
+        required: false,
+      },
+
+      expirationTime: {
+        type: Number,
+        default: null,
+      },
+
+      keys: {
+
+        p256dh: {
+          type: String,
+          required: false,
+        },
+
+        auth: {
+          type: String,
+          required: false,
+        }
+
+      }
+
+    },
     status: {
       type: String,
       enum: [

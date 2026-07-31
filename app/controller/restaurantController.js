@@ -8,8 +8,7 @@ const {
   menuItemValidation,
   partnerContractSchema,
 } = require("../validator/restaurantValidate");
-const client = require("../config/twilio");
-const redis = require("../lib/redis");
+// const client = require("../config/twilio");
 const slugify = require("slugify");
 const path = require("path");
 const Otp = require("../model/otpmodel");
@@ -17,7 +16,9 @@ const fs = require("fs");
 const sendEmailverificationOtp = require("../helper/sendEmailverification");
 
 const { default: mongoose } = require("mongoose");
-const { getCache, setCache } = require("../../services/redisservice");
+const { getCache, setCache, deleteCache, invalidatePattern } = require("../../services/redisservice");
+const { getIO } = require("../socket/socket");
+const sendPushNotification = require("../../utils/sendNotification");
 
 
 class restaurantController {
@@ -652,6 +653,8 @@ class restaurantController {
         isRecommended,
       });
 
+      await invalidatePattern(`foods:${restaurant._id}:*`);
+
       return res.status(201).json({
         success: true,
         message: "Food added successfully.",
@@ -669,6 +672,17 @@ class restaurantController {
 
   async deleteFood(req, res) {
     try {
+      const restaurant = await RestaurantSchema.findOne({
+        owner: req.user.id,
+      });
+
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found",
+        });
+      }
+
       const food = await Food.findById(req.params.id);
 
       if (!food) {
@@ -682,13 +696,16 @@ class restaurantController {
         const imagePath = path.join(__dirname, "../../", food.image);
 
         try {
-          fs.unlink(imagePath);
+          await fs.unlink(imagePath);
         } catch (err) {
           console.log("Image delete error:", err.message);
         }
       }
 
       await Food.findByIdAndDelete(req.params.id);
+
+
+      await invalidatePattern(`foods:${restaurant._id}:*`);
 
       return res.status(200).json({
         success: true,
@@ -701,14 +718,13 @@ class restaurantController {
         message: error.message,
       });
     }
-  };
+  }
 
   async getAllFoods(req, res) {
     try {
       const restaurant = await RestaurantSchema.findOne({
         owner: req.user.id,
       });
-
       if (!restaurant) {
         return res.status(404).json({
           success: false,
@@ -716,8 +732,12 @@ class restaurantController {
         });
       }
 
-      // Redis Cache Key
-      const cacheKey = `foods:${restaurant._id}`;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Redis Cache Key - must include page & limit, otherwise every page returns the same cached data
+      const cacheKey = `foods:${restaurant._id}:page:${page}:limit:${limit}`;
 
       // Try to get data from Redis
       const cachedFoods = await getCache(cacheKey);
@@ -726,13 +746,13 @@ class restaurantController {
         return res.status(200).json({
           success: true,
           fromCache: true,
-          count: cachedFoods.length,
-          data: cachedFoods,
+          message: "Food list fetched successfully.",
+          pagination: cachedFoods.pagination,
+          data: cachedFoods.data,
         });
       }
 
-
-      const foods = await Food.aggregate([
+      const result = await Food.aggregate([
         {
           $match: {
             restaurant: restaurant._id,
@@ -772,27 +792,45 @@ class restaurantController {
             isAvailable: 1,
             isRecommended: 1,
             createdAt: 1,
-
             restaurantName: "$restaurant.restaurantName",
             restaurantEmail: "$restaurant.email",
             restaurantPhone: "$restaurant.phone",
           },
         },
         {
-          $sort: {
-            createdAt: -1,
+          $facet: {
+            data: [
+              { $sort: { createdAt: -1 } },
+              { $skip: skip },
+              { $limit: limit },
+            ],
+            totalCount: [{ $count: "count" }],
           },
         },
       ]);
 
-      await setCache(cacheKey, foods, 60);
+      const foods = result[0]?.data || [];
+      const total = result[0]?.totalCount?.[0]?.count || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      const response = {
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: total,
+          limit,
+        },
+        data: foods,
+      };
+
+      await setCache(cacheKey, response, 60);
+
       return res.status(200).json({
         success: true,
         fromCache: false,
-        count: foods.length,
-        data: foods,
+        message: "Food list fetched successfully.",
+        ...response,
       });
-
     } catch (error) {
       return res.status(500).json({
         success: false,
@@ -800,7 +838,6 @@ class restaurantController {
       });
     }
   }
-
 
   async getFoodById(req, res) {
     try {
@@ -825,7 +862,6 @@ class restaurantController {
       });
     }
   }
-
 
   async getMyRestaurant(req, res) {
     try {
@@ -857,13 +893,55 @@ class restaurantController {
     }
   }
 
+  async toggleAvailability(req, res) {
+    try {
+      const { id } = req.params;
+
+      const item = await Food.findByIdAndUpdate(id,
+        { returnDocument: "after" }
+      );
+
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          message: "Menu item not found",
+        });
+      }
+
+      item.isAvailable = !item.isAvailable;
+      await item.save();
+
+      getIO().emit("food:status", {
+        foodId: item._id.toString(),
+        itemName: item.itemName,
+        isAvailable: item.isAvailable,
+      });
+
+      await invalidatePattern(`foods:${item.restaurant.toString()}`);
+
+      res.status(200).json({
+        success: true,
+        message: item.isAvailable
+          ? "Item is now available"
+          : "Item marked as out of stock",
+        data: item,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 
   async editmenu(req, res) {
     try {
 
       const menuid = req.params.id
 
-
+      const restaurant = await RestaurantSchema.findOne({
+        owner: req.user.id,
+      });
       const food = await Food.findById(req.params.id);
       console.log("Food:", food);
 
@@ -903,6 +981,8 @@ class restaurantController {
 
       await menufind.save()
 
+      await invalidatePattern(`foods:${restaurant._id}:*`);
+
       return res.status(200).json({
         status: true,
         message: "Menu Updated Successfully",
@@ -921,8 +1001,139 @@ class restaurantController {
   }
 
 
+  async restaurantStatus(req, res) {
+    try {
+      const { isOpen } = req.body;
+
+      const restaurant = await RestaurantSchema.findByIdAndUpdate(
+        req.restaurant._id,
+        { isOpen },
+        { returnDocument: "after" }
+      );
+
+      getIO().emit("restaurant:status", {
+        restaurantId: restaurant._id.toString(),
+        restaurantName: restaurant.restaurantName,
+        isOpen: restaurant.isOpen,
+      });
+      console.log("Restaurant:", restaurant);
+      console.log("Push Subscription:", restaurant.pushSubscription);
+      if (restaurant.pushSubscription) {
+
+        await sendPushNotification(
+          restaurant.pushSubscription,
+          {
+            title: restaurant.isOpen
+              ? "Restaurant Open"
+              : "Restaurant Closed",
+
+            body: `${restaurant.restaurantName} is ${restaurant.isOpen ? "OPEN" : "CLOSED"
+              } now.`,
+
+            url: `/restaurant/${restaurant._id}`
+          }
+        );
+
+      }
+
+
+      return res.status(200).json({
+        success: true,
+        message: "Restaurant status updated",
+        data: restaurant,
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    }
+  }
+
+  async savePushSubscription(req, res) {
+
+    try {
+
+      const { subscription } = req.body;
+
+
+      console.log(
+        "BODY:",
+        JSON.stringify(req.body, null, 2)
+      );
+
+
+      console.log(
+        "SUBSCRIPTION:",
+        JSON.stringify(subscription, null, 2)
+      );
+
+
+      const restaurant =
+        await RestaurantSchema.findByIdAndUpdate(
+          req.restaurant._id,
+          {
+            pushSubscription: subscription
+          },
+          {
+            new: true
+          }
+        );
+
+
+      console.log(
+        "AFTER SAVE:",
+        JSON.stringify(
+          restaurant.pushSubscription,
+          null,
+          2
+        )
+      );
+
+
+      res.json({
+        success: true,
+        restaurant
+      });
+
+
+    } catch (error) {
+
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+
+    }
+
+  }
 }
 
 module.exports = new restaurantController();
 
+// Food Collection
+//       │
+//       ▼
+// $match
+// → Restaurant-এর food এবং deleted নয় এমন document filter করি।
 
+//       │
+//       ▼
+// $lookup
+// → Restaurant collection-এর সাথে join করে restaurant-এর তথ্য নিয়ে আসি।
+
+//       │
+//       ▼
+// $unwind
+// → Lookup-এর ফলে পাওয়া restaurant array-কে object-এ convert করি, যাতে field access করা সহজ হয়।
+
+//       │
+//       ▼
+// $project
+// → Response-এ কোন কোন field থাকবে এবং restaurant-এর nested field-গুলোকে top-level-এ আনি।
+
+//       │
+//       ▼
+// $sort
+// → createdAt অনুযায়ী newest থেকে oldest order-এ সাজাই।

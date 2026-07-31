@@ -1,11 +1,8 @@
 
 const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
-
-
 const verifyRestaurant = async (req, res, next) => {
-console.log("verifyRestaurant")
+    console.log("verifyRestaurant")
     try {
-
         const restaurant = await RestaurantSchema.findOne({
             owner: req.user.id
         });
@@ -16,7 +13,6 @@ console.log("verifyRestaurant")
                 message: "Restaurant not found"
             });
         }
-
         req.restaurant = restaurant;
         console.log("User ID:", req.user.id);
         console.log("Restaurant From DB:", restaurant);
@@ -28,6 +24,5 @@ console.log("verifyRestaurant")
             message: "Invalid or expired token",
         });
     }
-
 }
 module.exports = verifyRestaurant;

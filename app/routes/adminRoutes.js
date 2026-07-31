@@ -21,7 +21,4 @@ router.get(
 
 router.delete("/restaurant/delete/:id", adminController.deleteRestaurant);
 
-
-
-
 module.exports = router;

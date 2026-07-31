@@ -1,57 +1,72 @@
 const jwt = require("jsonwebtoken");
+const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
 
-const AuthCheck = (req, res, next) => {
+const AuthCheck = async (req, res, next) => {
+
   try {
+
     const authHeader = req.headers.authorization;
 
-    console.log("AuthCheck");
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         status: false,
-        message: "Access denied. No token provided",
+        message: "Access denied"
       });
     }
+
 
     const token = authHeader.split(" ")[1];
 
-    if (!token) {
-      return res.status(401).json({
-        status: false,
-        message: "Token missing",
-      });
-    }
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "sagnikduttawebskitters",
+      process.env.JWT_SECRET || "sagnikduttawebskitters"
     );
+
 
     req.user = {
       id: decoded.id,
       role: decoded.role,
     };
 
+
+
+    // Restaurant find
+    const restaurant =
+      await RestaurantSchema.findOne({
+        owner: decoded.id
+      });
+
+
+
+    if (!restaurant) {
+
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found"
+      });
+
+    }
+
+
+
+    req.restaurant = restaurant;
+
+
     next();
+
+
   } catch (err) {
-    if (err.name === "TokenExpiredError") {
-      return res.status(401).json({
-        status: false,
-        message: "Token expired",
-      });
-    }
 
-    if (err.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        status: false,
-        message: "Invalid token",
-      });
-    }
-
-    return res.status(500).json({
-      status: false,
-      message: "Authentication failed",
+    return res.status(401).json({
+      success: false,
+      message: err.message
     });
+
   }
+
 };
+
 
 module.exports = AuthCheck;
