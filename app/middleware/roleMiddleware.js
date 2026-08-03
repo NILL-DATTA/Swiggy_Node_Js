@@ -1,7 +1,6 @@
 const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     try {
-      // Check user exists (auth middleware already Run)
       if (!req.user || !req.user.role) {
         return res.status(401).json({
           status: false,
@@ -9,7 +8,6 @@ const authorizeRoles = (...allowedRoles) => {
         });
       }
 
-      // Role check
       if (!allowedRoles.includes(req.user.role)) {
         return res.status(403).json({
           status: false,

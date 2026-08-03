@@ -111,10 +111,8 @@ class restaurantController {
 
       // Already Applied?
       const existing = await MobileSchema.findOne({
-        $or: [
-          { owner: userId },
-          { email: email.toLowerCase() },
-        ],
+        email: email.toLowerCase(),
+        isPhoneVerified: true
       });
 
       if (existing) {
@@ -182,12 +180,12 @@ class restaurantController {
       const userId = req.user.id;
       const role = req.user.role;
 
-      if (role !== "restaurant_owner") {
-        return res.status(403).json({
-          status: false,
-          message: "Only restaurant owners can create restaurants",
-        });
-      }
+      // if (role !== "restaurant_owner") {
+      //   return res.status(403).json({
+      //     status: false,
+      //     message: "Only restaurant owners can create restaurants",
+      //   });
+      // }
       console.log(userId, "userId");
       if (!userId) {
         return res.status(401).json({
@@ -258,12 +256,12 @@ class restaurantController {
       const userId = req.user.id;
       const role = req.user.role;
 
-      if (role !== "restaurant_owner") {
-        return res.status(403).json({
-          status: false,
-          message: "Only restaurant owners can create restaurants",
-        });
-      }
+      // if (role !== "restaurant_owner") {
+      //   return res.status(403).json({
+      //     status: false,
+      //     message: "Only restaurant owners can create restaurants",
+      //   });
+      // }
 
       if (!userId) {
         return res.status(401).json({

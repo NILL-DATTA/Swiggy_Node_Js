@@ -12,25 +12,25 @@ router.post(
   AuthCheck,
   restaurantController.applyRestaurant,
 );
-router.post("/restaurant/otp", AuthCheck, authorizeRoles("restaurant_owner"), restaurantController.verifyRestaurantOtp);
+router.post("/restaurant/otp", AuthCheck, authorizeRoles("user"), restaurantController.verifyRestaurantOtp);
 router.post(
   "/restaurant/details",
   AuthCheck,
-  authorizeRoles("restaurant_owner"),
+  authorizeRoles("user"),
   restaurantController.restaurantDetails,
 );
 
 router.post(
   "/restaurant/documents",
   AuthCheck,
-  authorizeRoles("restaurant_owner"),
+  authorizeRoles("user"),
   restaurantController.restaurantDoc,
 );
 
 router.post(
   "/partner-contract",
   AuthCheck,
-  authorizeRoles("restaurant_owner"),
+  authorizeRoles("user"),
   restaurantController.acceptPartnerContract
 );
 
@@ -41,7 +41,7 @@ router.post(
     next();
   },
   AuthCheck,
-  authorizeRoles("restaurant_owner"),
+  authorizeRoles("user"),
   upload.single("image"),
   restaurantController.addFood
 );
