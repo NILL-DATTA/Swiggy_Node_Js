@@ -3,6 +3,8 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controller/adminController");
 const upload = require("../middleware/image");
+const AuthCheck = require("../middleware/authMiddleware");
+const authorizeRoles = require("../middleware/roleMiddleware");
 
 router.put(
   "/admin/update-restaurant/:id",
@@ -20,5 +22,9 @@ router.get(
 );
 
 router.delete("/restaurant/delete/:id", adminController.deleteRestaurant);
+
+router.patch("/food/:foodId/approve", AuthCheck, authorizeRoles("admin"), adminController.approveFood);
+
+router.get("/pending/foodlist", AuthCheck, authorizeRoles("admin"), adminController.pendingFoodList)
 
 module.exports = router;

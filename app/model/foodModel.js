@@ -12,8 +12,6 @@ const foodSchema = new mongoose.Schema(
     itemName: {
       type: String,
       required: true,
-
-
     },
 
     slug: {
@@ -114,9 +112,6 @@ const foodSchema = new mongoose.Schema(
       default: 0,
 
     },
-
-
-
     isAvailable: {
       type: Boolean,
       default: true,
@@ -133,6 +128,24 @@ const foodSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
 
+    },
+
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
+    },
+
+    approvedAt: {
+      type: Date,
+      default: null,
+    },
+
+    rejectedReason: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   {

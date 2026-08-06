@@ -41,7 +41,7 @@ router.post(
     next();
   },
   AuthCheck,
-  authorizeRoles("user"),
+  authorizeRoles("restaurant_owner"),
   upload.single("image"),
   restaurantController.addFood
 );
@@ -92,4 +92,5 @@ router.patch(
   verifyRestaurant,
   restaurantController.savePushSubscription
 );
+
 module.exports = router;

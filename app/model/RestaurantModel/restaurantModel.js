@@ -52,8 +52,6 @@ const RestaurantSchema = new mongoose.Schema(
         "Sweet Shop",
       ],
     },
-
-
     workingDays: [
       {
         type: String,
@@ -182,9 +180,7 @@ const RestaurantSchema = new mongoose.Schema(
       default: "draft",
       index: true,
     },
-
     approvedAt: Date,
-
     rejectedReason: String,
   },
   {

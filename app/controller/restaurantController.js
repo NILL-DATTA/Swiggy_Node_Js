@@ -574,6 +574,7 @@ class restaurantController {
     }
   }
 
+
   async addFood(req, res) {
     try {
       const {
@@ -591,7 +592,7 @@ class restaurantController {
         isVeg,
       } = req.body;
 
-      // Find logged-in owner's restaurant
+      // Find restaurant of logged-in owner
       const restaurant = await RestaurantSchema.findOne({
         owner: req.user.id,
       });
@@ -603,7 +604,7 @@ class restaurantController {
         });
       }
 
-      // Restaurant must be approved
+      // Only approved restaurant can add food
       if (restaurant.status !== "approved") {
         return res.status(403).json({
           success: false,
@@ -611,7 +612,7 @@ class restaurantController {
         });
       }
 
-      // Food name required
+      // Food name validation
       if (!itemName || !itemName.trim()) {
         return res.status(400).json({
           success: false,
@@ -619,7 +620,7 @@ class restaurantController {
         });
       }
 
-      // Duplicate check
+      // Check duplicate food
       const existingFood = await Food.findOne({
         restaurant: restaurant._id,
         itemName: itemName.trim(),
@@ -633,10 +634,12 @@ class restaurantController {
         });
       }
 
-      // Image
-      const image = req.file ? `/uploads/${req.file.filename}` : "";
 
-      // Discount %
+      const image = req.file
+        ? `/uploads/${req.file.filename}`
+        : "";
+
+
       let discountPercentage = 0;
 
       if (
@@ -651,36 +654,45 @@ class restaurantController {
         );
       }
 
-      // Create Food
       const food = await Food.create({
         restaurant: restaurant._id,
+
         itemName: itemName.trim(),
+
         slug: slugify(itemName, {
           lower: true,
           strict: true,
         }),
+
         description,
         foodType,
         category,
         cuisine,
+
         basePrice,
         discountPrice,
         discountPercentage,
+
         gst,
         preparationTime,
         image,
+
         isVeg,
         isAvailable,
         isRecommended,
+
+        approvalStatus: "pending",
       });
 
+      // Clear restaurant food cache
       await invalidatePattern(`foods:${restaurant._id}:*`);
 
       return res.status(201).json({
         success: true,
-        message: "Food added successfully.",
+        message: "Food added successfully. Waiting for admin approval.",
         data: food,
       });
+
     } catch (error) {
       console.error(error);
 

@@ -5,6 +5,7 @@ const slugify = require("slugify");
 const path = require("path");
 const fs = require("fs");
 const { default: mongoose } = require("mongoose");
+const { invalidatePattern } = require("../../services/redisservice");
 
 class AdminController {
   async updateRestaurantStatus(req, res) {
@@ -216,7 +217,6 @@ class AdminController {
     }
   }
 
-
   async approvedRestaurants(req, res) {
     try {
       const restaurants = await Restaurant.find({
@@ -237,7 +237,6 @@ class AdminController {
     }
   }
 
-
   async pendingRestaurants(req, res) {
     try {
       const restaurants = await Restaurant.find({
@@ -257,7 +256,6 @@ class AdminController {
       });
     }
   }
-
 
   async deleteRestaurant(req, res) {
     try {
@@ -290,6 +288,77 @@ class AdminController {
       });
     }
   };
+
+  async approveFood(req, res) {
+    try {
+      const { foodId } = req.params;
+
+      // Find food
+      const food = await Food.findOne({
+        _id: foodId,
+        isDeleted: false,
+      });
+
+      if (!food) {
+        return res.status(404).json({
+          success: false,
+          message: "Food not found.",
+        });
+      }
+
+      // Already approved
+      if (food.approvalStatus === "approved") {
+        return res.status(400).json({
+          success: false,
+          message: "Food is already approved.",
+        });
+      }
+
+      // Approve food
+      food.approvalStatus = "approved";
+      food.approvedAt = new Date();
+      food.rejectedReason = "";
+
+      await food.save();
+
+      // Clear cache
+      await invalidatePattern(`foods:${food.restaurant}:*`);
+
+      return res.status(200).json({
+        success: true,
+        message: "Food approved successfully.",
+        data: food,
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async pendingFoodList(req, res) {
+    try {
+      const foods = await Food.find({
+        approvalStatus: "pending",
+      }).sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: foods.length,
+        data: foods,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong",
+        error: error.message,
+      });
+    }
+  }
 
 }
 
