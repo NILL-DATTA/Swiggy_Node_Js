@@ -9,6 +9,8 @@ const {
   partnerContractSchema,
 } = require("../validator/restaurantValidate");
 // const client = require("../config/twilio");
+const UserSchema = require("../model/authModel");
+
 const slugify = require("slugify");
 const path = require("path");
 const Otp = require("../model/otpmodel");
@@ -88,10 +90,11 @@ class restaurantController {
     }
   }
 
+
   async applyRestaurant(req, res) {
     try {
-      const { email } = req.body;
       const userId = req.user?.id;
+      const { email } = req.body;
 
       // Auth Check
       if (!userId) {
@@ -109,10 +112,30 @@ class restaurantController {
         });
       }
 
-      // Already Applied?
+      // Get Logged-in User
+      const user = await UserSchema.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found",
+        });
+      }
+
+      // Normalize Emails
+      const requestedEmail = email.toLowerCase().trim();
+      const loggedInEmail = user.email.toLowerCase().trim();
+
+      if (requestedEmail !== loggedInEmail) {
+        return res.status(403).json({
+          status: false,
+          message: "You can apply only with your logged-in email",
+        });
+      }
+
       const existing = await MobileSchema.findOne({
-        email: email.toLowerCase(),
-        isPhoneVerified: true
+        owner: userId,
+        email: loggedInEmail,
       });
 
       if (existing) {
@@ -122,14 +145,12 @@ class restaurantController {
         });
       }
 
-      // Create Application
       const restaurant = await MobileSchema.create({
         owner: userId,
-        email: email.toLowerCase(),
+        email: loggedInEmail,
         isEmailVerified: false,
       });
 
-      // Send OTP Email
       await sendEmailverificationOtp({
         _id: restaurant._id,
         email: restaurant.email,
@@ -154,6 +175,8 @@ class restaurantController {
       });
     }
   }
+
+
 
   async restaurantDetails(req, res) {
     try {
@@ -998,7 +1021,6 @@ class restaurantController {
 
   }
 
-
   async restaurantStatus(req, res) {
     try {
       const { isOpen } = req.body;
@@ -1009,32 +1031,47 @@ class restaurantController {
         { returnDocument: "after" }
       );
 
+      // Socket notification
       getIO().emit("restaurant:status", {
         restaurantId: restaurant._id.toString(),
         restaurantName: restaurant.restaurantName,
         isOpen: restaurant.isOpen,
       });
+
       console.log("Restaurant:", restaurant);
-      console.log("Push Subscription:", restaurant.pushSubscription);
-      if (restaurant.pushSubscription) {
+      console.log(
+        "Push Subscription:",
+        restaurant.pushSubscription
+      );
 
-        await sendPushNotification(
-          restaurant.pushSubscription,
-          {
-            title: restaurant.isOpen
-              ? "Restaurant Open"
-              : "Restaurant Closed",
+      // Push notification
+      // if (restaurant.pushSubscription) {
+      //   try {
+      //     await sendPushNotification(
+      //       restaurant.pushSubscription,
+      //       {
+      //         title: restaurant.isOpen
+      //           ? "Restaurant Open"
+      //           : "Restaurant Closed",
 
-            body: `${restaurant.restaurantName} is ${restaurant.isOpen ? "OPEN" : "CLOSED"
-              } now.`,
+      //         body: `${restaurant.restaurantName} is ${restaurant.isOpen ? "OPEN" : "CLOSED"
+      //           } now.`,
 
-            url: `/restaurant/${restaurant._id}`
-          }
-        );
+      //         url: `/restaurant/${restaurant._id}`,
+      //       }
+      //     );
 
-      }
+      //     console.log("Push notification sent");
 
+      //   } catch (pushError) {
+      //     console.error(
+      //       "Push notification failed:",
+      //       pushError.message
+      //     );
+      //   }
+      // }
 
+      // Main API success
       return res.status(200).json({
         success: true,
         message: "Restaurant status updated",
@@ -1042,6 +1079,8 @@ class restaurantController {
       });
 
     } catch (err) {
+      console.error("Restaurant status error:", err);
+
       return res.status(500).json({
         success: false,
         message: err.message,
@@ -1049,34 +1088,76 @@ class restaurantController {
     }
   }
 
+
   async savePushSubscription(req, res) {
     try {
-
       const { subscription } = req.body;
 
       console.log(
-        "BODY:",
-        JSON.stringify(req.body, null, 2)
+        "========== INCOMING SUBSCRIPTION =========="
       );
 
       console.log(
-        "SUBSCRIPTION:",
         JSON.stringify(subscription, null, 2)
       );
 
+      console.log(
+        "ENDPOINT:",
+        subscription?.endpoint
+      );
+
+      console.log(
+        "P256DH:",
+        subscription?.keys?.p256dh
+      );
+
+      console.log(
+        "AUTH:",
+        subscription?.keys?.auth
+      );
+
+      console.log(
+        "==========================================="
+      );
+
+      // Basic validation
+      if (
+        !subscription?.endpoint ||
+        !subscription?.keys?.p256dh ||
+        !subscription?.keys?.auth
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid push subscription",
+        });
+      }
+
+      // Save subscription
       const restaurant =
         await RestaurantSchema.findByIdAndUpdate(
           req.restaurant._id,
           {
-            pushSubscription: subscription
+            $set: {
+              pushSubscription: subscription,
+            },
           },
           {
-            new: true
+            new: true,
           }
         );
 
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found",
+        });
+      }
+
       console.log(
-        "AFTER SAVE:",
+        "========== AFTER SAVE =========="
+      );
+
+      console.log(
         JSON.stringify(
           restaurant.pushSubscription,
           null,
@@ -1084,22 +1165,26 @@ class restaurantController {
         )
       );
 
+      console.log(
+        "================================"
+      );
 
-      res.json({
+      return res.status(200).json({
         success: true,
-        restaurant
+        message: "Push subscription saved",
       });
-
 
     } catch (error) {
+      console.error(
+        "SAVE PUSH ERROR:",
+        error
+      );
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
-
     }
-
   }
 }
 
