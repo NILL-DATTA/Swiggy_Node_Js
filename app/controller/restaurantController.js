@@ -1101,103 +1101,103 @@ class restaurantController {
   }
 
 
-  async savePushSubscription(req, res) {
-    try {
-      const { subscription } = req.body;
+  // async savePushSubscription(req, res) {
+  //   try {
+  //     const { subscription } = req.body;
 
-      console.log(
-        "========== INCOMING SUBSCRIPTION =========="
-      );
+  //     console.log(
+  //       "========== INCOMING SUBSCRIPTION =========="
+  //     );
 
-      console.log(
-        JSON.stringify(subscription, null, 2)
-      );
+  //     console.log(
+  //       JSON.stringify(subscription, null, 2)
+  //     );
 
-      console.log(
-        "ENDPOINT:",
-        subscription?.endpoint
-      );
+  //     console.log(
+  //       "ENDPOINT:",
+  //       subscription?.endpoint
+  //     );
 
-      console.log(
-        "P256DH:",
-        subscription?.keys?.p256dh
-      );
+  //     console.log(
+  //       "P256DH:",
+  //       subscription?.keys?.p256dh
+  //     );
 
-      console.log(
-        "AUTH:",
-        subscription?.keys?.auth
-      );
+  //     console.log(
+  //       "AUTH:",
+  //       subscription?.keys?.auth
+  //     );
 
-      console.log(
-        "==========================================="
-      );
+  //     console.log(
+  //       "==========================================="
+  //     );
 
-      // Basic validation
-      if (
-        !subscription?.endpoint ||
-        !subscription?.keys?.p256dh ||
-        !subscription?.keys?.auth
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid push subscription",
-        });
-      }
+  //     // Basic validation
+  //     if (
+  //       !subscription?.endpoint ||
+  //       !subscription?.keys?.p256dh ||
+  //       !subscription?.keys?.auth
+  //     ) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: "Invalid push subscription",
+  //       });
+  //     }
 
-      // Save subscription
-      const restaurant =
-        await RestaurantSchema.findByIdAndUpdate(
-          req.restaurant._id,
-          {
-            $set: {
-              pushSubscription: subscription,
-            },
-          },
-          {
-            new: true,
-          }
-        );
+  //     // Save subscription
+  //     const restaurant =
+  //       await RestaurantSchema.findByIdAndUpdate(
+  //         req.restaurant._id,
+  //         {
+  //           $set: {
+  //             pushSubscription: subscription,
+  //           },
+  //         },
+  //         {
+  //           new: true,
+  //         }
+  //       );
 
-      if (!restaurant) {
-        return res.status(404).json({
-          success: false,
-          message: "Restaurant not found",
-        });
-      }
+  //     if (!restaurant) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: "Restaurant not found",
+  //       });
+  //     }
 
-      console.log(
-        "========== AFTER SAVE =========="
-      );
+  //     console.log(
+  //       "========== AFTER SAVE =========="
+  //     );
 
-      console.log(
-        JSON.stringify(
-          restaurant.pushSubscription,
-          null,
-          2
-        )
-      );
+  //     console.log(
+  //       JSON.stringify(
+  //         restaurant.pushSubscription,
+  //         null,
+  //         2
+  //       )
+  //     );
 
-      console.log(
-        "================================"
-      );
+  //     console.log(
+  //       "================================"
+  //     );
 
-      return res.status(200).json({
-        success: true,
-        message: "Push subscription saved",
-      });
+  //     return res.status(200).json({
+  //       success: true,
+  //       message: "Push subscription saved",
+  //     });
 
-    } catch (error) {
-      console.error(
-        "SAVE PUSH ERROR:",
-        error
-      );
+  //   } catch (error) {
+  //     console.error(
+  //       "SAVE PUSH ERROR:",
+  //       error
+  //     );
 
-      return res.status(500).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  }
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: error.message,
+  //     });
+  //   }
+  // }
 }
 
 module.exports = new restaurantController();

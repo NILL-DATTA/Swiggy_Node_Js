@@ -66,14 +66,14 @@ const startServer = async () => {
 
     server.listen(PORT, () => {
       console.log(
-        `🚀 Server running at http://localhost:${PORT}`
+        `Server running at http://localhost:${PORT}`
       );
     });
 
   } catch (error) {
 
     console.error(
-      "❌ Server startup failed:",
+      "Server startup failed:",
       error.message
     );
 

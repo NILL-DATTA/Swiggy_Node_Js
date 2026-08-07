@@ -85,12 +85,12 @@ router.patch(
   verifyRestaurant,
   restaurantController.restaurantStatus
 );
-router.patch(
-  "/push-subscribe",
-  AuthCheck,
-  authorizeRoles("restaurant_owner"),
-  verifyRestaurant,
-  restaurantController.savePushSubscription
-);
+// router.patch(
+//   "/push-subscribe",
+//   AuthCheck,
+//   authorizeRoles("restaurant_owner"),
+//   verifyRestaurant,
+//   restaurantController.savePushSubscription
+// );
 
 module.exports = router;
