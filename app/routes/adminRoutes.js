@@ -23,7 +23,7 @@ router.get(
 
 router.delete("/restaurant/delete/:id", adminController.deleteRestaurant);
 
-router.patch("/food/:foodId/approve", AuthCheck, authorizeRoles("admin"), adminController.approveFood);
+router.patch("/food/:foodId/status", AuthCheck, authorizeRoles("admin"), adminController.approveFood);
 
 router.get("/pending/foodlist", AuthCheck, authorizeRoles("admin"), adminController.pendingFoodList)
 

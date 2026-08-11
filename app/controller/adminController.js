@@ -292,8 +292,21 @@ class AdminController {
   async approveFood(req, res) {
     try {
       const { foodId } = req.params;
+      const { status, rejectedReason } = req.body;
 
-      // Find food
+      const allowedStatuses = [
+        "approved",
+        "rejected",
+        "suspended",
+      ];
+
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status",
+        });
+      }
+
       const food = await Food.findOne({
         _id: foodId,
         isDeleted: false,
@@ -306,18 +319,29 @@ class AdminController {
         });
       }
 
-      // Already approved
-      if (food.approvalStatus === "approved") {
+      if (food.approvalStatus === status) {
         return res.status(400).json({
           success: false,
-          message: "Food is already approved.",
+          message: `Food is already ${status}`,
         });
       }
 
-      // Approve food
-      food.approvalStatus = "approved";
-      food.approvedAt = new Date();
-      food.rejectedReason = "";
+      food.approvalStatus = status;
+
+      if (status === "approved") {
+        food.approvedAt = new Date();
+        food.rejectedReason = "";
+      }
+
+      if (status === "rejected") {
+        food.approvedAt = null;
+        food.rejectedReason = rejectedReason || "Food rejected by admin";
+      }
+
+      if (status === "suspended") {
+        food.approvedAt = null;
+        food.rejectedReason = "";
+      }
 
       await food.save();
 
@@ -326,10 +350,9 @@ class AdminController {
 
       return res.status(200).json({
         success: true,
-        message: "Food approved successfully.",
+        message: `Food ${status} successfully.`,
         data: food,
       });
-
     } catch (error) {
       console.error(error);
 
