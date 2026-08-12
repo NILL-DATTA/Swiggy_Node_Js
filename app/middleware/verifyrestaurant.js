@@ -2,7 +2,7 @@ const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
 
 const verifyRestaurant = async (req, res, next) => {
 
-    console.log("🚨🚨🚨 VERIFY RESTAURANT V2 🚨🚨🚨");
+    console.log("VERIFY RESTAURANT V2");
 
     try {
 
@@ -21,11 +21,11 @@ const verifyRestaurant = async (req, res, next) => {
 
         console.log("USER ID:", req.user.id);
         console.log("RESTAURANT ID:", restaurant._id);
-        console.log("🔥 BEFORE NEXT");
+        console.log("BEFORE NEXT");
 
         next();
 
-        console.log("🔥 AFTER NEXT");
+        console.log("AFTER NEXT");
 
     } catch (err) {
 

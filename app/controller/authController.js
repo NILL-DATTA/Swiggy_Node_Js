@@ -335,297 +335,280 @@ class AuthController {
       });
     }
   }
-async addToCart(req, res) {
-  try {
-
-    if (!req.user) {
-      return res.status(401).json({
-        status: false,
-        message: "Unauthorized",
-      });
-    }
 
 
-    if (req.user.role !== "user") {
-      return res.status(403).json({
-        status: false,
-        message: "Only users can add to cart",
-      });
-    }
+  async addToCart(req, res) {
+    try {
+      let { foodId, quantity } = req.body;
 
-    let { foodId, quantity } = req.body;
-
-    
-    if (!foodId || quantity === undefined || quantity === null) {
-      return res.status(400).json({
-        status: false,
-        message: "foodId and quantity are required",
-      });
-    }
-
-    quantity = Number(quantity);
-
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      return res.status(400).json({
-        status: false,
-        message: "Quantity must be a positive integer",
-      });
-    }
-
-    if (quantity > 10) {
-      return res.status(400).json({
-        status: false,
-        message: "Maximum 10 items allowed",
-      });
-    }
-
-
-    if (!mongoose.Types.ObjectId.isValid(foodId)) {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid foodId",
-      });
-    }
-
-    const food = await Food.findById(foodId);
-
-    if (!food) {
-      return res.status(404).json({
-        status: false,
-        message: "Food not found",
-      });
-    }
-
-    if (food.isDeleted) {
-      return res.status(400).json({
-        status: false,
-        message: "Food is no longer available",
-      });
-    }
-
-    if (food.approvalStatus !== "approved") {
-      return res.status(400).json({
-        status: false,
-        message: "Food is not approved",
-      });
-    }
-
- 
-    if (!food.isAvailable) {
-      return res.status(400).json({
-        status: false,
-        message: "Food is currently unavailable",
-      });
-    }
-
-    const restaurant = await Restaurant.findById(food.restaurant);
-
-    if (!restaurant) {
-      return res.status(404).json({
-        status: false,
-        message: "Restaurant not found",
-      });
-    }
-
- 
-    if (restaurant.status !== "approved") {
-      return res.status(400).json({
-        status: false,
-        message: "Restaurant is not available",
-      });
-    }
-
-  
-    const openingClosing = restaurant.openingClosing;
-
-    if (
-      !openingClosing ||
-      !Array.isArray(openingClosing.slots) ||
-      openingClosing.slots.length === 0
-    ) {
-      return res.status(400).json({
-        status: false,
-        message: "Restaurant timing not set",
-      });
-    }
-
-    const now = new Date();
-
-    const currentMinutes =
-      now.getHours() * 60 + now.getMinutes();
-
-    let isOpen = false;
-
-
-    for (const slot of openingClosing.slots) {
-      if (!slot.open || !slot.close) {
-        continue;
-      }
-
-      const [openHour, openMinute] = slot.open
-        .split(":")
-        .map(Number);
-
-      const [closeHour, closeMinute] = slot.close
-        .split(":")
-        .map(Number);
-
-      const openTime =
-        openHour * 60 + openMinute;
-
-      const closeTime =
-        closeHour * 60 + closeMinute;
-
-     
-      if (openTime < closeTime) {
-        if (
-          currentMinutes >= openTime &&
-          currentMinutes <= closeTime
-        ) {
-          isOpen = true;
-          break;
-        }
-      }
-
-      else if (openTime > closeTime) {
-        if (
-          currentMinutes >= openTime ||
-          currentMinutes <= closeTime
-        ) {
-          isOpen = true;
-          break;
-        }
-      }
-
-      else {
-        isOpen = true;
-        break;
-      }
-    }
-
-
-    if (!isOpen) {
-      return res.status(400).json({
-        status: false,
-        message: "Restaurant is closed now",
-      });
-    }
-
-    const finalPrice =
-      food.discountPrice > 0
-        ? food.discountPrice
-        : food.basePrice;
-
-
-    let cart = await Cart.findOne({
-      user: req.user.id,
-    });
-
-    let cartChangedRestaurant = false;
-
-
-    if (
-      cart &&
-      cart.restaurant &&
-      cart.restaurant.toString() !==
-        food.restaurant.toString()
-    ) {
-      cart.items = [];
-      cart.restaurant = food.restaurant;
-      cart.totalAmount = 0;
-
-      cartChangedRestaurant = true;
-    }
-
-
-    if (!cart) {
-      cart = new Cart({
-        user: req.user.id,
-        restaurant: food.restaurant,
-        items: [],
-        totalAmount: 0,
-      });
-    }
-
-    const itemIndex = cart.items.findIndex(
-      (item) =>
-        item.food.toString() === foodId.toString()
-    );
-
-
-    if (itemIndex !== -1) {
-      const newQuantity =
-        cart.items[itemIndex].quantity + quantity;
-
-      if (newQuantity > 10) {
+      if (!foodId || quantity === undefined || quantity === null) {
         return res.status(400).json({
           status: false,
-          message:
-            "Maximum 10 items allowed for this food",
+          message: "foodId and quantity are required",
         });
       }
 
-      cart.items[itemIndex].quantity =
-        newQuantity;
+      quantity = Number(quantity);
 
-      cart.items[itemIndex].price =
-        finalPrice;
-    }
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        return res.status(400).json({
+          status: false,
+          message: "Quantity must be a positive integer",
+        });
+      }
 
-    else {
-      cart.items.push({
-        food: food._id,
-        quantity: quantity,
-        price: finalPrice,
+      if (quantity > 10) {
+        return res.status(400).json({
+          status: false,
+          message: "Maximum 10 items allowed",
+        });
+      }
+
+
+      if (!mongoose.Types.ObjectId.isValid(foodId)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid foodId",
+        });
+      }
+
+      const food = await Food.findById(foodId);
+
+      if (!food) {
+        return res.status(404).json({
+          status: false,
+          message: "Food not found",
+        });
+      }
+
+      if (food.isDeleted) {
+        return res.status(400).json({
+          status: false,
+          message: "Food is no longer available",
+        });
+      }
+
+      if (food.approvalStatus !== "approved") {
+        return res.status(400).json({
+          status: false,
+          message: "Food is not approved",
+        });
+      }
+
+
+      if (!food.isAvailable) {
+        return res.status(400).json({
+          status: false,
+          message: "Food is currently unavailable",
+        });
+      }
+
+      const restaurant = await Restaurant.findById(food.restaurant);
+
+      if (!restaurant) {
+        return res.status(404).json({
+          status: false,
+          message: "Restaurant not found",
+        });
+      }
+
+
+      if (restaurant.status !== "approved") {
+        return res.status(400).json({
+          status: false,
+          message: "Restaurant is not available",
+        });
+      }
+
+
+      const openingClosing = restaurant.openingClosing;
+
+      if (
+        !openingClosing ||
+        !Array.isArray(openingClosing.slots) ||
+        openingClosing.slots.length === 0
+      ) {
+        return res.status(400).json({
+          status: false,
+          message: "Restaurant timing not set",
+        });
+      }
+
+      const now = new Date();
+
+      const currentMinutes =
+        now.getHours() * 60 + now.getMinutes();
+
+      let isOpen = false;
+
+
+      for (const slot of openingClosing.slots) {
+        if (!slot.open || !slot.close) {
+          continue;
+        }
+
+        const [openHour, openMinute] = slot.open
+          .split(":")
+          .map(Number);
+
+        const [closeHour, closeMinute] = slot.close
+          .split(":")
+          .map(Number);
+
+        const openTime =
+          openHour * 60 + openMinute;
+
+        const closeTime =
+          closeHour * 60 + closeMinute;
+
+
+        if (openTime < closeTime) {
+          if (
+            currentMinutes >= openTime &&
+            currentMinutes <= closeTime
+          ) {
+            isOpen = true;
+            break;
+          }
+        }
+
+        else if (openTime > closeTime) {
+          if (
+            currentMinutes >= openTime ||
+            currentMinutes <= closeTime
+          ) {
+            isOpen = true;
+            break;
+          }
+        }
+
+        else {
+          isOpen = true;
+          break;
+        }
+      }
+
+
+      if (!isOpen) {
+        return res.status(400).json({
+          status: false,
+          message: "Restaurant is closed now",
+        });
+      }
+
+      const finalPrice =
+        food.discountPrice > 0
+          ? food.discountPrice
+          : food.basePrice;
+
+
+      let cart = await Cart.findOne({
+        user: req.user.id,
       });
-    }
 
-    cart.totalAmount = cart.items.reduce(
-      (total, item) => {
-        return (
-          total +
-          item.price * item.quantity
-        );
-      },
-      0
-    );
+      let cartChangedRestaurant = false;
 
 
-    await cart.save();
+      if (
+        cart &&
+        cart.restaurant &&
+        cart.restaurant.toString() !==
+        food.restaurant.toString()
+      ) {
+        cart.items = [];
+        cart.restaurant = food.restaurant;
+        cart.totalAmount = 0;
 
-    const updatedCart = await Cart.findById(
-      cart._id
-    )
-      .populate(
-        "restaurant",
-        "name"
-      )
-      .populate(
-        "items.food",
-        "itemName basePrice discountPrice image foodType isVeg category cuisine"
+        cartChangedRestaurant = true;
+      }
+
+
+      if (!cart) {
+        cart = new Cart({
+          user: req.user.id,
+          restaurant: food.restaurant,
+          items: [],
+          totalAmount: 0,
+        });
+      }
+
+      const itemIndex = cart.items.findIndex(
+        (item) =>
+          item.food.toString() === foodId.toString()
       );
 
-  
-    return res.status(200).json({
-      status: true,
-      message: cartChangedRestaurant
-        ? "Previous cart cleared and item added from new restaurant"
-        : "Item added to cart",
-      data: updatedCart,
-    });
-  } catch (error) {
-    console.error(
-      "Add To Cart Error:",
-      error
-    );
 
-    return res.status(500).json({
-      status: false,
-      message: "Internal server error",
-      error: error.message,
-    });
+      if (itemIndex !== -1) {
+        const newQuantity =
+          cart.items[itemIndex].quantity + quantity;
+
+        if (newQuantity > 10) {
+          return res.status(400).json({
+            status: false,
+            message:
+              "Maximum 10 items allowed for this food",
+          });
+        }
+
+        cart.items[itemIndex].quantity =
+          newQuantity;
+
+        cart.items[itemIndex].price =
+          finalPrice;
+      }
+
+      else {
+        cart.items.push({
+          food: food._id,
+          quantity: quantity,
+          price: finalPrice,
+        });
+      }
+
+      cart.totalAmount = cart.items.reduce(
+        (total, item) => {
+          return (
+            total +
+            item.price * item.quantity
+          );
+        },
+        0
+      );
+      await cart.save();
+
+      const updatedCart = await Cart.findById(
+        cart._id
+      )
+        .populate(
+          "restaurant",
+          "name"
+        )
+        .populate(
+          "items.food",
+          "itemName basePrice discountPrice image foodType isVeg category cuisine"
+        );
+
+
+      return res.status(200).json({
+        status: true,
+        message: cartChangedRestaurant
+          ? "Previous cart cleared and item added from new restaurant"
+          : "Item added to cart",
+        data: updatedCart,
+      });
+    } catch (error) {
+      console.error(
+        "Add To Cart Error:",
+        error
+      );
+
+      return res.status(500).json({
+        status: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
   }
-}
 
   async cartList(req, res) {
     try {
@@ -845,26 +828,6 @@ async addToCart(req, res) {
     session.startTransaction();
 
     try {
-      //  Auth check
-      if (!req.user) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(401).json({
-          status: false,
-          message: "Unauthorized",
-        });
-      }
-
-      //  Role check
-      if (req.user.role !== "user") {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(403).json({
-          status: false,
-          message: "Only users can place orders",
-        });
-      }
-
       //  Get cart
       const cart = await Cart.findOne({ user: req.user.id }).session(session);
 
