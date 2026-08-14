@@ -20,7 +20,7 @@ router.put("/orders/:id/cancel", AuthCheck, authController.cancelOrder);
 router.put(
   "/orders/:id/status",
   AuthCheck,
-  allowRoles("restaurant_owner", "admin", "user"),
+  allowRoles("restaurant_owner", "admin"),
   authController.updateOrderStatus,
 );
 module.exports = router;

@@ -18,7 +18,7 @@ const AuthCheck = async (req, res, next) => {
       !authHeader.startsWith("Bearer ")
     ) {
       console.log(
-        "❌ Authorization header missing"
+        "Authorization header missing"
       );
 
       return res.status(401).json({
@@ -65,7 +65,7 @@ const AuthCheck = async (req, res, next) => {
   } catch (error) {
 
     console.error(
-      "❌ AuthCheck Error:",
+      "AuthCheck Error:",
       error.message
     );
 

@@ -22,7 +22,7 @@ const authorizeRoles = (...allowedRoles) => {
       }
 
       if (!allowedRoles.includes(req.user.role)) {
-        console.log("❌ ROLE MISMATCH");
+        console.log("ROLE MISMATCH");
 
         return res.status(403).json({
           status: false,

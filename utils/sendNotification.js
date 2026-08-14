@@ -37,11 +37,11 @@ const sendPushNotification = async (subscription, payload) => {
             JSON.stringify(payload)
         );
 
-        console.log("✅ Push notification sent");
+        console.log("Push notification sent");
 
     } catch (error) {
 
-        console.error("❌ PUSH ERROR");
+        console.error("PUSH ERROR");
         console.error("Message:", error.message);
         console.error("Status Code:", error.statusCode);
         console.error("Body:", error.body);

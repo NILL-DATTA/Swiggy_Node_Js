@@ -336,7 +336,6 @@ class AuthController {
     }
   }
 
-
   async addToCart(req, res) {
     try {
       let { foodId, quantity } = req.body;
@@ -1128,24 +1127,7 @@ class AuthController {
 
   async updateOrderStatus(req, res) {
     try {
-      //  auth check
-      if (!req.user) {
-        return res.status(401).json({
-          status: false,
-          message: "Unauthorized",
-        });
-      }
-
-      //  role check
-      if (!["restaurant_owner", "admin"].includes(req.user.role)) {
-        return res.status(403).json({
-          status: false,
-          message: "Access denied",
-        });
-      }
-
       const { status } = req.body;
-
       //  order fetch + populate
       const order = await Order.findById(req.params.id).populate({
         path: "restaurant",
@@ -1159,7 +1141,6 @@ class AuthController {
         });
       }
 
-      //  ownership check (only for restaurant_owner)
       if (
         req.user.role === "restaurant_owner" &&
         (!order.restaurant?.owner ||
@@ -1171,7 +1152,6 @@ class AuthController {
         });
       }
 
-      //  status flow
       const statusFlow = {
         placed: "confirmed",
         confirmed: "preparing",
