@@ -10,7 +10,6 @@ router.put(
   "/admin/update-restaurant/:id",
   adminController.updateRestaurantStatus,
 );
-router.patch("/applications/:id/status", adminController.updateApplicationStatus)
 
 router.get(
   "/admin/restaurants/approved",

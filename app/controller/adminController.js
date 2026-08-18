@@ -96,90 +96,7 @@ class AdminController {
     }
   }
 
-  async updateApplicationStatus(req, res) {
-    try {
-      const { id } = req.params;
-      const { status, reason } = req.body;
 
-      const allowedStatuses = [
-        "approved",
-        "rejected",
-        "suspended",
-      ];
-
-      if (!allowedStatuses.includes(status)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid status",
-        });
-      }
-
-      const restaurant = await Restaurant.findById(id);
-
-      if (!restaurant) {
-        return res.status(404).json({
-          success: false,
-          message: "Restaurant not found",
-        });
-      }
-
-      if (restaurant.status === status) {
-        return res.status(400).json({
-          success: false,
-          message: `Restaurant is already ${status}`,
-        });
-      }
-
-      // Update restaurant status
-      restaurant.status = status;
-
-      if (status === "approved") {
-        restaurant.approvedAt = new Date();
-
-        // IMPORTANT:
-        // Restaurant owner -> restaurant_owner
-        const owner = await User.findByIdAndUpdate(
-          restaurant.owner,
-          {
-            $set: {
-              role: "restaurant_owner",
-            },
-          },
-          {
-            new: true,
-          }
-        );
-
-        if (!owner) {
-          return res.status(404).json({
-            success: false,
-            message: "Restaurant owner user not found",
-          });
-        }
-      }
-
-      if (status === "rejected") {
-        restaurant.rejectedReason = reason || "";
-      }
-
-      await restaurant.save();
-
-      return res.status(200).json({
-        success: true,
-        message: `Restaurant ${status} successfully`,
-        data: restaurant,
-      });
-
-    } catch (error) {
-      console.error("Update Application Status Error:", error);
-
-      return res.status(500).json({
-        success: false,
-        message: "Something went wrong",
-        error: error.message,
-      });
-    }
-  }
 
   async rejectedApplication(req, res) {
     try {
@@ -289,80 +206,83 @@ class AdminController {
     }
   };
 
-  async approveFood(req, res) {
-    try {
-      const { foodId } = req.params;
-      const { status, rejectedReason } = req.body;
+async approveFood(req, res) {
+  try {
+    const { foodId } = req.params;
+    const { status, rejectedReason } = req.body;
 
-      const allowedStatuses = [
-        "approved",
-        "rejected",
-        "suspended",
-      ];
+    const allowedStatuses = [
+      "approved",
+      "rejected",
+      "suspended",
+    ];
 
-      if (!allowedStatuses.includes(status)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid status",
-        });
-      }
-
-      const food = await Food.findOne({
-        _id: foodId,
-        isDeleted: false,
-      });
-
-      if (!food) {
-        return res.status(404).json({
-          success: false,
-          message: "Food not found.",
-        });
-      }
-
-      if (food.approvalStatus === status) {
-        return res.status(400).json({
-          success: false,
-          message: `Food is already ${status}`,
-        });
-      }
-
-      food.approvalStatus = status;
-
-      if (status === "approved") {
-        food.approvedAt = new Date();
-        food.rejectedReason = "";
-      }
-
-      if (status === "rejected") {
-        food.approvedAt = null;
-        food.rejectedReason = rejectedReason || "Food rejected by admin";
-      }
-
-      if (status === "suspended") {
-        food.approvedAt = null;
-        food.rejectedReason = "";
-      }
-
-      await food.save();
-
-      // Clear cache
-      await invalidatePattern(`foods:${food.restaurant}:*`);
-
-      return res.status(200).json({
-        success: true,
-        message: `Food ${status} successfully.`,
-        data: food,
-      });
-    } catch (error) {
-      console.error(error);
-
-      return res.status(500).json({
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
         success: false,
-        message: error.message,
+        message: "Invalid status",
       });
     }
-  }
 
+    const food = await Food.findOne({
+      _id: foodId,
+      isDeleted: false,
+    });
+
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: "Food not found.",
+      });
+    }
+
+    if (food.approvalStatus === status) {
+      return res.status(400).json({
+        success: false,
+        message: `Food is already ${status}`,
+      });
+    }
+
+    food.approvalStatus = status;
+
+    // Approved
+    if (status === "approved") {
+      food.approvedAt = new Date();
+      food.rejectedReason = "";
+    }
+
+    // Rejected
+    if (status === "rejected") {
+      food.approvedAt = null;
+      food.rejectedReason =
+        rejectedReason || "Food rejected by admin";
+    }
+
+    // Suspended
+    if (status === "suspended") {
+      food.approvedAt = null;
+      food.rejectedReason = "";
+    }
+
+    await food.save();
+
+    // Clear user food list cache
+    await invalidatePattern("foods");
+
+    return res.status(200).json({
+      success: true,
+      message: `Food ${status} successfully.`,
+      data: food,
+    });
+  } catch (error) {
+    console.error("Approve Food Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
   async pendingFoodList(req, res) {
     try {
       const foods = await Food.find({
