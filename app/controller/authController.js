@@ -1093,13 +1093,8 @@ class AuthController {
       });
     }
   }
-
   async myOrder(req, res) {
     try {
-      const orders = await Order.find({ user: req.user.id })
-        .populate("restaurant", "name")
-        .populate("items.food", "name price")
-        .sort({ createdAt: -1 });
       if (req.user.role !== "user") {
         return res.status(403).json({
           status: false,
@@ -1107,19 +1102,29 @@ class AuthController {
         });
       }
 
+      const orders = await Order.find({
+        user: req.user.id,
+      })
+        .populate("restaurant", "name")
+        .populate(
+          "items.food",
+          "itemName basePrice discountPrice image foodType isVeg"
+        )
+        .sort({ createdAt: -1 });
+
       return res.status(200).json({
         status: true,
         data: orders,
       });
     } catch (err) {
-      console.error(err);
+      console.error("My Order Error:", err);
+
       return res.status(500).json({
         status: false,
         message: "Failed to fetch orders",
       });
     }
   }
-
   async singleOrder(req, res) {
     try {
       const { id } = req.params;
