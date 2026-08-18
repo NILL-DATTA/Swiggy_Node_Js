@@ -1,21 +1,25 @@
 const mongoose = require("mongoose");
+
 const MobileSchema = new mongoose.Schema(
   {
     email: {
       type: String,
       required: true,
+      lowercase: true,
+      trim: true,
     },
 
     owner: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      ref: "User",
+      required: true,
     },
 
     verificationSid: {
       type: String,
     },
 
-    isPhoneVerified: {
+    isEmailVerified: {
       type: Boolean,
       default: false,
     },
@@ -23,7 +27,7 @@ const MobileSchema = new mongoose.Schema(
   {
     timestamps: true,
     versionKey: false,
-  },
+  }
 );
 
-module.exports = mongoose.model("email", MobileSchema);
+module.exports = mongoose.model("EmailVerification", MobileSchema);

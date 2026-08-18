@@ -91,72 +91,62 @@ class restaurantController {
   }
 
 
-  async resendRestaurantOtp(req, res) {
-    try {
-      const { email } = req.body;
+async resendRestaurantOtp(req, res) {
+  try {
+    const { email } = req.body;
 
-      if (!email) {
-        return res.status(400).json({
-          status: false,
-          message: "Email is required",
-        });
-      }
-
-      const restaurant = await MobileSchema.findOne({
-        email: email.toLowerCase(),
-      });
-
-      if (!restaurant) {
-        return res.status(404).json({
-          status: false,
-          message: "Restaurant application not found",
-        });
-      }
-
-      if (restaurant.isEmailVerified) {
-        return res.status(400).json({
-          status: false,
-          message: "Email is already verified",
-        });
-      }
-
-      await Otp.deleteMany({
-        userId: restaurant._id.toString(),
-      });
-
-      const otp = Math.floor(
-        100000 + Math.random() * 900000
-      ).toString();
-
-
-      const expiresAt = new Date(
-        Date.now() + 5 * 60 * 1000
-      );
-
-
-      await Otp.create({
-        userId: restaurant._id.toString(),
-        otp: otp,
-        expiresAt: expiresAt,
-      });
-
-
-
-      return res.status(200).json({
-        status: true,
-        message: "OTP resent successfully",
-      });
-
-    } catch (error) {
-      console.log("Resend OTP Error:", error);
-
-      return res.status(500).json({
+    if (!email) {
+      return res.status(400).json({
         status: false,
-        message: "Internal server error",
+        message: "Email is required",
       });
     }
-  }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const restaurant = await MobileSchema.findOne({
+      email: normalizedEmail,
+      owner: req.user.id,
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({
+        status: false,
+        message: "Restaurant application not found",
+      });
+    }
+
+    if (restaurant.isEmailVerified) {
+      return res.status(400).json({
+        status: false,
+        message: "Email is already verified",
+      });
+    }
+
+    // Generate + save + send new OTP
+    await sendEmailverificationOtp({
+      _id: restaurant._id,
+      email: restaurant.email,
+      full_name: "Restaurant Owner",
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "OTP resent successfully",
+      data: {
+        id: restaurant._id,
+        email: restaurant.email,
+      },
+    });
+  } catch (error) {
+    console.error("Resend OTP Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal server error",
+    });
+  }
+}
 
 async applyRestaurant(req, res) {
   try {
@@ -229,6 +219,7 @@ async applyRestaurant(req, res) {
       isEmailVerified: false,
     });
 
+    // Send OTP
     await sendEmailverificationOtp({
       _id: restaurant._id,
       email: restaurant.email,
