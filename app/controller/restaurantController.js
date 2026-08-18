@@ -158,90 +158,100 @@ class restaurantController {
   }
 
 
-  async applyRestaurant(req, res) {
-    try {
-      const userId = req.user?.id;
-      const { email } = req.body;
+async applyRestaurant(req, res) {
+  try {
+    const userId = req.user?.id;
+    const { email } = req.body;
 
-      // Auth Check
-      if (!userId) {
-        return res.status(401).json({
-          status: false,
-          message: "Unauthorized",
-        });
-      }
-
-      // Email Check
-      if (!email) {
-        return res.status(400).json({
-          status: false,
-          message: "Email is required",
-        });
-      }
-
-      // Get Logged-in User
-      const user = await UserSchema.findById(userId);
-
-      if (!user) {
-        return res.status(404).json({
-          status: false,
-          message: "User not found",
-        });
-      }
-
-      // Normalize Emails
-      const requestedEmail = email.toLowerCase().trim();
-      const loggedInEmail = user.email.toLowerCase().trim();
-
-      if (requestedEmail !== loggedInEmail) {
-        return res.status(403).json({
-          status: false,
-          message: "You can apply only with your logged-in email",
-        });
-      }
-
-      const existing = await MobileSchema.findOne({
-        owner: userId,
-        email: loggedInEmail,
-      });
-
-      if (existing) {
-        return res.status(400).json({
-          status: false,
-          message: "Already applied with this email",
-        });
-      }
-
-      const restaurant = await MobileSchema.create({
-        owner: userId,
-        email: loggedInEmail,
-        isEmailVerified: false,
-      });
-
-      await sendEmailverificationOtp({
-        _id: restaurant._id,
-        email: restaurant.email,
-        full_name: "Restaurant Owner",
-      });
-
-      return res.status(201).json({
-        status: true,
-        message: "OTP sent successfully",
-        data: {
-          id: restaurant._id,
-          email: restaurant.email,
-        },
-      });
-
-    } catch (error) {
-      console.log(error);
-
-      return res.status(500).json({
+    if (!userId) {
+      return res.status(401).json({
         status: false,
-        message: error.message,
+        message: "Unauthorized",
       });
     }
+
+ 
+    if (!email) {
+      return res.status(400).json({
+        status: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await UserSchema.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    const requestedEmail = email.toLowerCase().trim();
+    const loggedInEmail = user.email.toLowerCase().trim();
+
+    if (requestedEmail !== loggedInEmail) {
+      return res.status(403).json({
+        status: false,
+        message: "You can apply only with your logged-in email",
+      });
+    }
+
+    const existing = await MobileSchema.findOne({
+      owner: userId,
+      email: loggedInEmail,
+    });
+
+ 
+    if (existing) {
+      if (existing.isEmailVerified) {
+        return res.status(400).json({
+          status: false,
+          message: "Email is already verified",
+        });
+      }
+
+      return res.status(400).json({
+        status: false,
+        message:
+          "Restaurant application already exists. Please resend OTP.",
+        data: {
+          id: existing._id,
+          email: existing.email,
+          isEmailVerified: existing.isEmailVerified,
+        },
+      });
+    }
+
+    const restaurant = await MobileSchema.create({
+      owner: userId,
+      email: loggedInEmail,
+      isEmailVerified: false,
+    });
+
+    await sendEmailverificationOtp({
+      _id: restaurant._id,
+      email: restaurant.email,
+      full_name: "Restaurant Owner",
+    });
+
+    return res.status(201).json({
+      status: true,
+      message: "OTP sent successfully",
+      data: {
+        id: restaurant._id,
+        email: restaurant.email,
+      },
+    });
+  } catch (error) {
+    console.log("Apply Restaurant Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal server error",
+    });
   }
+}
 
   async restaurantDetails(req, res) {
     try {
