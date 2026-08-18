@@ -835,9 +835,6 @@ class AuthController {
     try {
       session.startTransaction();
 
-      // ==============================
-      // 1. Get Cart
-      // ==============================
       const cart = await Cart.findOne({
         user: req.user.id,
       }).session(session);
@@ -851,9 +848,6 @@ class AuthController {
         });
       }
 
-      // ==============================
-      // 2. Check Cart Items
-      // ==============================
       if (!cart.items || cart.items.length === 0) {
         await session.abortTransaction();
 
@@ -863,9 +857,6 @@ class AuthController {
         });
       }
 
-      // ==============================
-      // 3. Validate Restaurant
-      // ==============================
       const restaurant = await Restaurant.findById(
         cart.restaurant
       ).session(session);
@@ -888,9 +879,7 @@ class AuthController {
         });
       }
 
-      // ==============================
-      // 4. Validate Address
-      // ==============================
+
       let { address } = req.body;
 
       if (
@@ -908,14 +897,10 @@ class AuthController {
 
       address = address.trim();
 
-      // ==============================
-      // 5. Get Food IDs
-      // ==============================
+
       const foodIds = cart.items.map((item) => item.food);
 
-      // ==============================
-      // 6. Fetch Foods
-      // ==============================
+
       const foods = await Food.find({
         _id: {
           $in: foodIds,
@@ -931,18 +916,14 @@ class AuthController {
         });
       }
 
-      // ==============================
-      // 7. Create Food Map
-      // ==============================
+
       const foodMap = {};
 
       foods.forEach((food) => {
         foodMap[food._id.toString()] = food;
       });
 
-      // ==============================
-      // 8. Prepare Order Items
-      // ==============================
+
       const orderItems = [];
 
       let totalAmount = 0;
@@ -950,27 +931,21 @@ class AuthController {
       for (const item of cart.items) {
         const food = foodMap[item.food.toString()];
 
-        // ------------------------------
-        // Food validation
-        // ------------------------------
+
         if (!food) {
           throw new Error(
             `Food item not found: ${item.food}`
           );
         }
 
-        // ------------------------------
-        // Food availability
-        // ------------------------------
+
         if (!food.isAvailable) {
           throw new Error(
             `${food.itemName || "Food item"} is not available`
           );
         }
 
-        // ------------------------------
-        // Restaurant consistency
-        // ------------------------------
+
         if (
           food.restaurant.toString() !==
           cart.restaurant.toString()
@@ -980,9 +955,6 @@ class AuthController {
           );
         }
 
-        // ------------------------------
-        // Validate quantity
-        // ------------------------------
         const quantity = Number(item.quantity);
 
         if (
@@ -994,9 +966,6 @@ class AuthController {
           );
         }
 
-        // ==============================
-        // 9. Calculate Price
-        // ==============================
 
         let price;
 
