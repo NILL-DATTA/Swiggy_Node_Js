@@ -10,6 +10,7 @@ const {
 } = require("../validator/restaurantValidate");
 // const client = require("../config/twilio");
 const UserSchema = require("../model/authModel");
+const Order = require("../model/orderModel");
 
 const slugify = require("slugify");
 const path = require("path");

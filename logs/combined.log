@@ -982,3 +982,6 @@
 {"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-18 17:41:13"}
 {"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-18 17:41:14"}
 {"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-18 17:41:14"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-18 18:57:27"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-18 18:57:28"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-18 18:57:28"}
