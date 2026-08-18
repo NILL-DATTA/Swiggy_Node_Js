@@ -89,6 +89,75 @@ class restaurantController {
       });
     }
   }
+
+
+  async resendRestaurantOtp(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: false,
+        message: "Email is required",
+      });
+    }
+
+    const restaurant = await MobileSchema.findOne({
+      email: email.toLowerCase(),
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({
+        status: false,
+        message: "Restaurant application not found",
+      });
+    }
+
+    if (restaurant.isEmailVerified) {
+      return res.status(400).json({
+        status: false,
+        message: "Email is already verified",
+      });
+    }
+
+    await Otp.deleteMany({
+      userId: restaurant._id.toString(),
+    });
+
+    const otp = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+  
+    const expiresAt = new Date(
+      Date.now() + 5 * 60 * 1000
+    );
+
+  
+    await Otp.create({
+      userId: restaurant._id.toString(),
+      otp: otp,
+      expiresAt: expiresAt,
+    });
+
+
+
+    return res.status(200).json({
+      status: true,
+      message: "OTP resent successfully",
+    });
+
+  } catch (error) {
+    console.log("Resend OTP Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
+}
+
+
   async applyRestaurant(req, res) {
     try {
       const userId = req.user?.id;

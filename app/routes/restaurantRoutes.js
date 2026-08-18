@@ -21,6 +21,12 @@ router.post(
 );
 
 router.post(
+  "/restaurant/resend-otp",
+  AuthCheck,
+  restaurantController.resendRestaurantOtp
+);
+
+router.post(
   "/restaurant/documents",
   AuthCheck,
   authorizeRoles("user"),
