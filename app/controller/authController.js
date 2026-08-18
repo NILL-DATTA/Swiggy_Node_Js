@@ -1234,69 +1234,115 @@ class AuthController {
       });
     }
   }
+async updateOrderStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-  async updateOrderStatus(req, res) {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
+    const allowedStatuses = [
+      "accepted",
+      "preparing",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+    ];
 
-      const allowedStatuses = [
-        "accepted",
-        "preparing",
-        "out_for_delivery",
-        "delivered",
-        "cancelled",
-      ];
-
-      if (!allowedStatuses.includes(status)) {
-        return res.status(400).json({
-          status: false,
-          message: "Invalid order status",
-        });
-      }
-
-      const order = await Order.findById(id);
-
-      if (!order) {
-        return res.status(404).json({
-          status: false,
-          message: "Order not found",
-        });
-      }
-
-      const allowedTransitions = {
-        placed: ["accepted", "cancelled"],
-        accepted: ["preparing", "cancelled"],
-        preparing: ["out_for_delivery", "cancelled"],
-        out_for_delivery: ["delivered"],
-        delivered: [],
-        cancelled: [],
-      };
-
-      if (!allowedTransitions[order.status].includes(status)) {
-        return res.status(400).json({
-          status: false,
-          message: `Cannot change status from ${order.status} to ${status}`,
-        });
-      }
-
-      order.status = status;
-
-      await order.save();
-
-      return res.status(200).json({
-        status: true,
-        message: "Order status updated successfully",
-        data: order,
-      });
-    } catch (error) {
-      console.error("Update Order Status Error:", error);
-
-      return res.status(500).json({
+    if (!status) {
+      return res.status(400).json({
         status: false,
-        message: "Internal server error",
+        message: "Order status is required",
       });
     }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid order status",
+      });
+    }
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        status: false,
+        message: "Order not found",
+      });
+    }
+
+    const allowedTransitions = {
+      placed: ["accepted", "cancelled"],
+
+      accepted: ["preparing", "cancelled"],
+
+      preparing: ["out_for_delivery", "cancelled"],
+
+      out_for_delivery: ["delivered"],
+
+      delivered: [],
+
+      cancelled: [],
+    };
+
+    const currentStatus = order.status;
+
+    const nextStatuses = allowedTransitions[currentStatus];
+
+    if (!nextStatuses) {
+      return res.status(400).json({
+        status: false,
+        message: `Invalid current order status: ${currentStatus}`,
+      });
+    }
+
+    if (!nextStatuses.includes(status)) {
+      return res.status(400).json({
+        status: false,
+        message: `Cannot change status from ${currentStatus} to ${status}`,
+      });
+    }
+
+    if (req.user.role === "restaurant_owner") {
+      const restaurant = await Restaurant.findById(
+        order.restaurant
+      ).select("owner");
+
+      if (!restaurant) {
+        return res.status(404).json({
+          status: false,
+          message: "Restaurant not found",
+        });
+      }
+
+      if (restaurant.owner.toString() !== req.user.id.toString()) {
+        return res.status(403).json({
+          status: false,
+          message: "You cannot update this order",
+        });
+      }
+    }
+
+    order.status = status;
+
+    await order.save();
+
+    return res.status(200).json({
+      status: true,
+      message: "Order status updated successfully",
+      data: {
+        orderId: order._id,
+        previousStatus: currentStatus,
+        currentStatus: order.status,
+      },
+    });
+  } catch (error) {
+    console.error("Update Order Status Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal server error",
+    });
   }
+}
 }
 module.exports = new AuthController();

@@ -21,7 +21,7 @@ router.put(
   "/orders/:id/status",
   AuthCheck,
   allowRoles("restaurant_owner", "admin"),
-  authController.updateOrderStatus,
+  authController.updateOrderStatus
 );
 module.exports = router;
 
