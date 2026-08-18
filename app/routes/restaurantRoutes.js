@@ -85,6 +85,10 @@ router.patch(
   verifyRestaurant,
   restaurantController.restaurantStatus
 );
+
+
+
+
 // router.patch(
 //   "/push-subscribe",
 //   AuthCheck,

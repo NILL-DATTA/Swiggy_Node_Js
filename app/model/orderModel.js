@@ -21,13 +21,17 @@ const orderSchema = new mongoose.Schema(
           ref: "Food",
           required: true,
         },
+
         quantity: {
           type: Number,
           required: true,
+          min: 1,
         },
+
         price: {
           type: Number,
           required: true,
+          min: 0,
         },
       },
     ],
@@ -35,18 +39,19 @@ const orderSchema = new mongoose.Schema(
     totalAmount: {
       type: Number,
       required: true,
+      min: 0,
     },
 
     address: {
       type: String,
       required: true,
+      trim: true,
     },
 
     status: {
       type: String,
       enum: [
         "placed",
-        "confirmed",
         "accepted",
         "preparing",
         "out_for_delivery",

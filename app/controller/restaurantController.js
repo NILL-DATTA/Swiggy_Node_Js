@@ -89,8 +89,6 @@ class restaurantController {
       });
     }
   }
-
-
   async applyRestaurant(req, res) {
     try {
       const userId = req.user?.id;
@@ -175,8 +173,6 @@ class restaurantController {
       });
     }
   }
-
-
 
   async restaurantDetails(req, res) {
     try {
@@ -769,10 +765,8 @@ class restaurantController {
       const limit = Number(req.query.limit) || 10;
       const skip = (page - 1) * limit;
 
-      // Redis Cache Key - must include page & limit, otherwise every page returns the same cached data
       const cacheKey = `foods:${restaurant._id}:page:${page}:limit:${limit}`;
 
-      // Try to get data from Redis
       const cachedFoods = await getCache(cacheKey);
 
       if (cachedFoods) {
@@ -1099,6 +1093,8 @@ class restaurantController {
       });
     }
   }
+
+
 
 
   // async savePushSubscription(req, res) {

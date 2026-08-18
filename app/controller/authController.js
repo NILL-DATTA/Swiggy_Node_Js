@@ -1093,6 +1093,7 @@ class AuthController {
       });
     }
   }
+
   async myOrder(req, res) {
     try {
       if (req.user.role !== "user") {
@@ -1125,6 +1126,7 @@ class AuthController {
       });
     }
   }
+
   async singleOrder(req, res) {
     try {
       const { id } = req.params;
@@ -1238,35 +1240,8 @@ class AuthController {
       const { id } = req.params;
       const { status } = req.body;
 
-
-      const order = await Order.findById(id).populate({
-        path: "restaurant",
-        select: "owner restaurantName name",
-      });
-
-      if (!order) {
-        return res.status(404).json({
-          status: false,
-          message: "Order not found",
-        });
-      }
-
-
-      if (req.user.role === "restaurant_owner") {
-        if (
-          !order.restaurant?.owner ||
-          order.restaurant.owner.toString() !== req.user.id.toString()
-        ) {
-          return res.status(403).json({
-            status: false,
-            message: "You can only update orders from your own restaurant",
-          });
-        }
-      }
-
       const allowedStatuses = [
-        "placed",
-        "confirmed",
+        "accepted",
         "preparing",
         "out_for_delivery",
         "delivered",
@@ -1276,90 +1251,50 @@ class AuthController {
       if (!allowedStatuses.includes(status)) {
         return res.status(400).json({
           status: false,
-          message: "Invalid status value",
+          message: "Invalid order status",
         });
       }
 
+      const order = await Order.findById(id);
 
-      if (["delivered", "cancelled"].includes(order.status)) {
+      if (!order) {
+        return res.status(404).json({
+          status: false,
+          message: "Order not found",
+        });
+      }
+
+      const allowedTransitions = {
+        placed: ["accepted", "cancelled"],
+        accepted: ["preparing", "cancelled"],
+        preparing: ["out_for_delivery", "cancelled"],
+        out_for_delivery: ["delivered"],
+        delivered: [],
+        cancelled: [],
+      };
+
+      if (!allowedTransitions[order.status].includes(status)) {
         return res.status(400).json({
           status: false,
-          message: `Order is already ${order.status}`,
+          message: `Cannot change status from ${order.status} to ${status}`,
         });
       }
 
-      if (status === "cancelled") {
-        const cancellableStatuses = [
-          "placed",
-          "confirmed",
-        ];
+      order.status = status;
 
-        if (!cancellableStatuses.includes(order.status)) {
-          return res.status(400).json({
-            status: false,
-            message: `Order cannot be cancelled when status is ${order.status}`,
-          });
-        }
-
-        order.status = "cancelled";
-
-        await order.save();
-      } else {
-
-        const statusFlow = {
-          placed: "confirmed",
-          confirmed: "preparing",
-          preparing: "out_for_delivery",
-          out_for_delivery: "delivered",
-        };
-
-        const nextStatus = statusFlow[order.status];
-
-
-        if (!nextStatus) {
-          return res.status(400).json({
-            status: false,
-            message: `Order cannot be updated from ${order.status}`,
-          });
-        }
-
-
-        if (nextStatus !== status) {
-          return res.status(400).json({
-            status: false,
-            message: `Invalid status transition. Order can only move from ${order.status} to ${nextStatus}`,
-          });
-        }
-
-
-        order.status = status;
-
-        await order.save();
-      }
-
-
-      const updatedOrder = await Order.findById(order._id)
-        .populate(
-          "restaurant",
-          "restaurantName name"
-        )
-        .populate(
-          "items.food",
-          "name price"
-        );
-
+      await order.save();
 
       return res.status(200).json({
         status: true,
-        message: `Order ${status} successfully`,
-        data: updatedOrder,
+        message: "Order status updated successfully",
+        data: order,
       });
-    } catch (err) {
-      console.error("Update Order Status Error:", err);
+    } catch (error) {
+      console.error("Update Order Status Error:", error);
 
       return res.status(500).json({
         status: false,
-        message: err.message,
+        message: "Internal server error",
       });
     }
   }
