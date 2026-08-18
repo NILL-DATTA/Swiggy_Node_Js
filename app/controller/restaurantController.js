@@ -91,158 +91,157 @@ class restaurantController {
   }
 
 
-async resendRestaurantOtp(req, res) {
-  try {
-    const { email } = req.body;
+  async resendRestaurantOtp(req, res) {
+    try {
+      const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({
-        status: false,
-        message: "Email is required",
+      if (!email) {
+        return res.status(400).json({
+          status: false,
+          message: "Email is required",
+        });
+      }
+
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const restaurant = await MobileSchema.findOne({
+        email: normalizedEmail,
+        owner: req.user.id,
       });
-    }
 
-    const normalizedEmail = email.toLowerCase().trim();
+      if (!restaurant) {
+        return res.status(404).json({
+          status: false,
+          message: "Restaurant application not found",
+        });
+      }
 
-    const restaurant = await MobileSchema.findOne({
-      email: normalizedEmail,
-      owner: req.user.id,
-    });
-
-    if (!restaurant) {
-      return res.status(404).json({
-        status: false,
-        message: "Restaurant application not found",
-      });
-    }
-
-    if (restaurant.isEmailVerified) {
-      return res.status(400).json({
-        status: false,
-        message: "Email is already verified",
-      });
-    }
-
-    // Generate + save + send new OTP
-    await sendEmailverificationOtp({
-      _id: restaurant._id,
-      email: restaurant.email,
-      full_name: "Restaurant Owner",
-    });
-
-    return res.status(200).json({
-      status: true,
-      message: "OTP resent successfully",
-      data: {
-        id: restaurant._id,
-        email: restaurant.email,
-      },
-    });
-  } catch (error) {
-    console.error("Resend OTP Error:", error);
-
-    return res.status(500).json({
-      status: false,
-      message: error.message || "Internal server error",
-    });
-  }
-}
-
-async applyRestaurant(req, res) {
-  try {
-    const userId = req.user?.id;
-    const { email } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({
-        status: false,
-        message: "Unauthorized",
-      });
-    }
-
- 
-    if (!email) {
-      return res.status(400).json({
-        status: false,
-        message: "Email is required",
-      });
-    }
-
-    const user = await UserSchema.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({
-        status: false,
-        message: "User not found",
-      });
-    }
-
-    const requestedEmail = email.toLowerCase().trim();
-    const loggedInEmail = user.email.toLowerCase().trim();
-
-    if (requestedEmail !== loggedInEmail) {
-      return res.status(403).json({
-        status: false,
-        message: "You can apply only with your logged-in email",
-      });
-    }
-
-    const existing = await MobileSchema.findOne({
-      owner: userId,
-      email: loggedInEmail,
-    });
-
- 
-    if (existing) {
-      if (existing.isEmailVerified) {
+      if (restaurant.isEmailVerified) {
         return res.status(400).json({
           status: false,
           message: "Email is already verified",
         });
       }
 
-      return res.status(400).json({
-        status: false,
-        message:
-          "Restaurant application already exists. Please resend OTP.",
+      await sendEmailverificationOtp({
+        _id: restaurant._id,
+        email: restaurant.email,
+        full_name: "Restaurant Owner",
+      });
+
+      return res.status(200).json({
+        status: true,
+        message: "OTP resent successfully",
         data: {
-          id: existing._id,
-          email: existing.email,
-          isEmailVerified: existing.isEmailVerified,
+          id: restaurant._id,
+          email: restaurant.email,
         },
       });
+    } catch (error) {
+      console.error("Resend OTP Error:", error);
+
+      return res.status(500).json({
+        status: false,
+        message: error.message || "Internal server error",
+      });
     }
-
-    const restaurant = await MobileSchema.create({
-      owner: userId,
-      email: loggedInEmail,
-      isEmailVerified: false,
-    });
-
-    // Send OTP
-    await sendEmailverificationOtp({
-      _id: restaurant._id,
-      email: restaurant.email,
-      full_name: "Restaurant Owner",
-    });
-
-    return res.status(201).json({
-      status: true,
-      message: "OTP sent successfully",
-      data: {
-        id: restaurant._id,
-        email: restaurant.email,
-      },
-    });
-  } catch (error) {
-    console.log("Apply Restaurant Error:", error);
-
-    return res.status(500).json({
-      status: false,
-      message: error.message || "Internal server error",
-    });
   }
-}
+
+  async applyRestaurant(req, res) {
+    try {
+      const userId = req.user?.id;
+      const { email } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({
+          status: false,
+          message: "Unauthorized",
+        });
+      }
+
+
+      if (!email) {
+        return res.status(400).json({
+          status: false,
+          message: "Email is required",
+        });
+      }
+
+      const user = await UserSchema.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found",
+        });
+      }
+
+      const requestedEmail = email.toLowerCase().trim();
+      const loggedInEmail = user.email.toLowerCase().trim();
+
+      if (requestedEmail !== loggedInEmail) {
+        return res.status(403).json({
+          status: false,
+          message: "You can apply only with your logged-in email",
+        });
+      }
+
+      const existing = await MobileSchema.findOne({
+        owner: userId,
+        email: loggedInEmail,
+      });
+
+
+      if (existing) {
+        if (existing.isEmailVerified) {
+          return res.status(400).json({
+            status: false,
+            message: "Email is already verified",
+          });
+        }
+
+        return res.status(400).json({
+          status: false,
+          message:
+            "Restaurant application already exists. Please resend OTP.",
+          data: {
+            id: existing._id,
+            email: existing.email,
+            isEmailVerified: existing.isEmailVerified,
+          },
+        });
+      }
+
+      const restaurant = await MobileSchema.create({
+        owner: userId,
+        email: loggedInEmail,
+        isEmailVerified: false,
+      });
+
+      // Send OTP
+      await sendEmailverificationOtp({
+        _id: restaurant._id,
+        email: restaurant.email,
+        full_name: "Restaurant Owner",
+      });
+
+      return res.status(201).json({
+        status: true,
+        message: "OTP sent successfully",
+        data: {
+          id: restaurant._id,
+          email: restaurant.email,
+        },
+      });
+    } catch (error) {
+      console.log("Apply Restaurant Error:", error);
+
+      return res.status(500).json({
+        status: false,
+        message: error.message || "Internal server error",
+      });
+    }
+  }
 
   async restaurantDetails(req, res) {
     try {
@@ -1167,7 +1166,14 @@ async applyRestaurant(req, res) {
 
   async restaurantOrders(req, res) {
     try {
-      const restaurantId = req.restaurant._id;
+      const restaurantId = req.restaurant?._id;
+
+      if (!restaurantId) {
+        return res.status(401).json({
+          status: false,
+          message: "Restaurant authentication required",
+        });
+      }
 
       const orders = await Order.find({
         restaurant: restaurantId,
@@ -1177,7 +1183,10 @@ async applyRestaurant(req, res) {
           "items.food",
           "itemName basePrice discountPrice image foodType isVeg category cuisine"
         )
-        .populate("restaurant", "name")
+        .populate(
+          "restaurant",
+          "name email phone address status"
+        )
         .sort({ createdAt: -1 });
 
       return res.status(200).json({
@@ -1197,103 +1206,6 @@ async applyRestaurant(req, res) {
   }
 
 
-  // async savePushSubscription(req, res) {
-  //   try {
-  //     const { subscription } = req.body;
-
-  //     console.log(
-  //       "========== INCOMING SUBSCRIPTION =========="
-  //     );
-
-  //     console.log(
-  //       JSON.stringify(subscription, null, 2)
-  //     );
-
-  //     console.log(
-  //       "ENDPOINT:",
-  //       subscription?.endpoint
-  //     );
-
-  //     console.log(
-  //       "P256DH:",
-  //       subscription?.keys?.p256dh
-  //     );
-
-  //     console.log(
-  //       "AUTH:",
-  //       subscription?.keys?.auth
-  //     );
-
-  //     console.log(
-  //       "==========================================="
-  //     );
-
-  //     // Basic validation
-  //     if (
-  //       !subscription?.endpoint ||
-  //       !subscription?.keys?.p256dh ||
-  //       !subscription?.keys?.auth
-  //     ) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: "Invalid push subscription",
-  //       });
-  //     }
-
-  //     // Save subscription
-  //     const restaurant =
-  //       await RestaurantSchema.findByIdAndUpdate(
-  //         req.restaurant._id,
-  //         {
-  //           $set: {
-  //             pushSubscription: subscription,
-  //           },
-  //         },
-  //         {
-  //           new: true,
-  //         }
-  //       );
-
-  //     if (!restaurant) {
-  //       return res.status(404).json({
-  //         success: false,
-  //         message: "Restaurant not found",
-  //       });
-  //     }
-
-  //     console.log(
-  //       "========== AFTER SAVE =========="
-  //     );
-
-  //     console.log(
-  //       JSON.stringify(
-  //         restaurant.pushSubscription,
-  //         null,
-  //         2
-  //       )
-  //     );
-
-  //     console.log(
-  //       "================================"
-  //     );
-
-  //     return res.status(200).json({
-  //       success: true,
-  //       message: "Push subscription saved",
-  //     });
-
-  //   } catch (error) {
-  //     console.error(
-  //       "SAVE PUSH ERROR:",
-  //       error
-  //     );
-
-  //     return res.status(500).json({
-  //       success: false,
-  //       message: error.message,
-  //     });
-  //   }
-  // }
 }
 
 module.exports = new restaurantController();
