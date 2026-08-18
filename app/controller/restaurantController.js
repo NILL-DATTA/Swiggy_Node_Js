@@ -92,70 +92,70 @@ class restaurantController {
 
 
   async resendRestaurantOtp(req, res) {
-  try {
-    const { email } = req.body;
+    try {
+      const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({
+      if (!email) {
+        return res.status(400).json({
+          status: false,
+          message: "Email is required",
+        });
+      }
+
+      const restaurant = await MobileSchema.findOne({
+        email: email.toLowerCase(),
+      });
+
+      if (!restaurant) {
+        return res.status(404).json({
+          status: false,
+          message: "Restaurant application not found",
+        });
+      }
+
+      if (restaurant.isEmailVerified) {
+        return res.status(400).json({
+          status: false,
+          message: "Email is already verified",
+        });
+      }
+
+      await Otp.deleteMany({
+        userId: restaurant._id.toString(),
+      });
+
+      const otp = Math.floor(
+        100000 + Math.random() * 900000
+      ).toString();
+
+
+      const expiresAt = new Date(
+        Date.now() + 5 * 60 * 1000
+      );
+
+
+      await Otp.create({
+        userId: restaurant._id.toString(),
+        otp: otp,
+        expiresAt: expiresAt,
+      });
+
+
+
+      return res.status(200).json({
+        status: true,
+        message: "OTP resent successfully",
+      });
+
+    } catch (error) {
+      console.log("Resend OTP Error:", error);
+
+      return res.status(500).json({
         status: false,
-        message: "Email is required",
+        message: "Internal server error",
       });
     }
-
-    const restaurant = await MobileSchema.findOne({
-      email: email.toLowerCase(),
-    });
-
-    if (!restaurant) {
-      return res.status(404).json({
-        status: false,
-        message: "Restaurant application not found",
-      });
-    }
-
-    if (restaurant.isEmailVerified) {
-      return res.status(400).json({
-        status: false,
-        message: "Email is already verified",
-      });
-    }
-
-    await Otp.deleteMany({
-      userId: restaurant._id.toString(),
-    });
-
-    const otp = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
-
-  
-    const expiresAt = new Date(
-      Date.now() + 5 * 60 * 1000
-    );
-
-  
-    await Otp.create({
-      userId: restaurant._id.toString(),
-      otp: otp,
-      expiresAt: expiresAt,
-    });
-
-
-
-    return res.status(200).json({
-      status: true,
-      message: "OTP resent successfully",
-    });
-
-  } catch (error) {
-    console.log("Resend OTP Error:", error);
-
-    return res.status(500).json({
-      status: false,
-      message: "Internal server error",
-    });
   }
-}
 
 
   async applyRestaurant(req, res) {
@@ -1164,6 +1164,36 @@ class restaurantController {
   }
 
 
+  async restaurantOrders(req, res) {
+    try {
+      const restaurantId = req.restaurant._id;
+
+      const orders = await Order.find({
+        restaurant: restaurantId,
+      })
+        .populate("user", "name email phone")
+        .populate(
+          "items.food",
+          "itemName basePrice discountPrice image foodType isVeg category cuisine"
+        )
+        .populate("restaurant", "name")
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        status: true,
+        message: "Restaurant orders fetched successfully",
+        totalOrders: orders.length,
+        data: orders,
+      });
+    } catch (error) {
+      console.error("Restaurant Orders Error:", error);
+
+      return res.status(500).json({
+        status: false,
+        message: error.message || "Internal server error",
+      });
+    }
+  }
 
 
   // async savePushSubscription(req, res) {

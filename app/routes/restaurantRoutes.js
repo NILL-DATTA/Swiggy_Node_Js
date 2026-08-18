@@ -93,6 +93,14 @@ router.patch(
 );
 
 
+router.get(
+  "/restaurant/orders",
+  AuthCheck,
+  verifyRestaurant,
+  authorizeRoles("restaurant_owner"),
+  restaurantController.restaurantOrders
+);
+
 
 
 // router.patch(
