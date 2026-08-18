@@ -642,6 +642,7 @@ class AuthController {
       });
     }
   }
+
   async removeDataCart(req, res) {
     try {
       const { foodId } = req.params;
@@ -725,7 +726,6 @@ class AuthController {
       });
     }
   }
-
 
   async refreshToken(req, res) {
     try {
@@ -1093,6 +1093,7 @@ class AuthController {
       });
     }
   }
+
   async myOrder(req, res) {
     try {
       const orders = await Order.find({ user: req.user.id })
