@@ -639,8 +639,6 @@ class restaurantController {
       });
     }
   }
-
-
   async addFood(req, res) {
     try {
       const {
@@ -1163,8 +1161,6 @@ class restaurantController {
       });
     }
   }
-
-
   async restaurantOrders(req, res) {
     try {
       const restaurantId = req.restaurant?._id;
@@ -1205,8 +1201,6 @@ class restaurantController {
       });
     }
   }
-
-
 }
 
 module.exports = new restaurantController();

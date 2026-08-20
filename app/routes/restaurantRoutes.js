@@ -101,8 +101,6 @@ router.get(
   restaurantController.restaurantOrders
 );
 
-
-
 // router.patch(
 //   "/push-subscribe",
 //   AuthCheck,
