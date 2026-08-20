@@ -639,6 +639,8 @@ class restaurantController {
       });
     }
   }
+
+
   async addFood(req, res) {
     try {
       const {
@@ -651,12 +653,10 @@ class restaurantController {
         discountPrice,
         gst,
         preparationTime,
-        isAvailable,
         isRecommended,
         isVeg,
       } = req.body;
 
-      // Find restaurant of logged-in owner
       const restaurant = await RestaurantSchema.findOne({
         owner: req.user.id,
       });
@@ -668,7 +668,6 @@ class restaurantController {
         });
       }
 
-      // Only approved restaurant can add food
       if (restaurant.status !== "approved") {
         return res.status(403).json({
           success: false,
@@ -676,7 +675,6 @@ class restaurantController {
         });
       }
 
-      // Food name validation
       if (!itemName || !itemName.trim()) {
         return res.status(400).json({
           success: false,
@@ -684,7 +682,6 @@ class restaurantController {
         });
       }
 
-      // Check duplicate food
       const existingFood = await Food.findOne({
         restaurant: restaurant._id,
         itemName: itemName.trim(),
@@ -698,11 +695,9 @@ class restaurantController {
         });
       }
 
-
       const image = req.file
         ? `/uploads/${req.file.filename}`
         : "";
-
 
       let discountPercentage = 0;
 
@@ -727,28 +722,22 @@ class restaurantController {
           lower: true,
           strict: true,
         }),
-
         description,
         foodType,
         category,
         cuisine,
-
         basePrice,
         discountPrice,
         discountPercentage,
-
         gst,
         preparationTime,
         image,
-
         isVeg,
-        isAvailable,
-        isRecommended,
-
+        isAvailable: true,
+        isRecommended: isRecommended || false,
         approvalStatus: "pending",
       });
 
-      // Clear restaurant food cache
       await invalidatePattern(`foods:${restaurant._id}:*`);
 
       return res.status(201).json({
