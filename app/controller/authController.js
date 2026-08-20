@@ -1180,60 +1180,59 @@ class AuthController {
     }
   }
 
-  async cancelOrder(req, res) {
-    try {
-      const { id } = req.params;
+async cancelOrder(req, res) {
+  try {
+    const { id } = req.params;
 
-      const order = await Order.findById(id);
+    const order = await Order.findById(id);
 
-      if (!order) {
-        return res.status(404).json({
-          status: false,
-          message: "Order not found",
-        });
-      }
-
-
-      if (req.user.role !== "user") {
-        return res.status(403).json({
-          status: false,
-          message: "Only users can cancel orders",
-        });
-      }
-
-
-      if (order.user.toString() !== req.user.id.toString()) {
-        return res.status(403).json({
-          status: false,
-          message: "Access denied",
-        });
-      }
-
-      if (!["placed", "confirmed"].includes(order.status)) {
-        return res.status(400).json({
-          status: false,
-          message: `Order cannot be cancelled when status is ${order.status}`,
-        });
-      }
-
-      order.status = "cancelled";
-
-      await order.save();
-
-      return res.status(200).json({
-        status: true,
-        message: "Order cancelled successfully",
-        data: order,
-      });
-    } catch (err) {
-      console.error("Cancel Order Error:", err);
-
-      return res.status(500).json({
+    if (!order) {
+      return res.status(404).json({
         status: false,
-        message: err.message,
+        message: "Order not found",
       });
     }
+
+    if (req.user.role !== "user") {
+      return res.status(403).json({
+        status: false,
+        message: "Only users can cancel orders",
+      });
+    }
+
+    if (order.user.toString() !== req.user.id.toString()) {
+      return res.status(403).json({
+        status: false,
+        message: "Access denied",
+      });
+    }
+
+    // User can cancel only before preparing
+    if (!["placed", "accepted"].includes(order.status)) {
+      return res.status(400).json({
+        status: false,
+        message: `Order cannot be cancelled when status is ${order.status}`,
+      });
+    }
+
+    order.status = "cancelled";
+
+    await order.save();
+
+    return res.status(200).json({
+      status: true,
+      message: "Order cancelled successfully",
+      data: order,
+    });
+  } catch (err) {
+    console.error("Cancel Order Error:", err);
+
+    return res.status(500).json({
+      status: false,
+      message: "Failed to cancel order",
+    });
   }
+}
 
   async updateOrderStatus(req, res) {
     try {
