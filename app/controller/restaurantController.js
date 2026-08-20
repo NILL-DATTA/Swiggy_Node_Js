@@ -1194,52 +1194,56 @@ class restaurantController {
   }
 
   async pendingFoodCount(req, res) {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
+    try {
+      // Check authentication
+      if (!req.user) {
+        return res.status(401).json({
+          status: false,
+          message: "Unauthorized",
+        });
+      }
+
+      // Only restaurant owner can access
+      if (req.user.role !== "restaurant_owner") {
+        return res.status(403).json({
+          status: false,
+          message: "Only restaurant owner can access",
+        });
+      }
+
+      // Find restaurant belonging to logged-in owner
+      const restaurant = await RestaurantSchema.findOne({
+        owner: req.user.id,
+      });
+
+      if (!restaurant) {
+        return res.status(404).json({
+          status: false,
+          message: "Restaurant not found",
+        });
+      }
+
+      // Count pending foods of this restaurant
+      const count = await Food.countDocuments({
+        restaurant: restaurant._id,
+        approvalStatus: "pending",
+        isDeleted: false,
+      });
+
+      return res.status(200).json({
+        status: true,
+        message: "Pending food count fetched successfully",
+        count,
+      });
+    } catch (err) {
+      console.error("Pending Food Count Error:", err);
+
+      return res.status(500).json({
         status: false,
-        message: "Unauthorized",
+        message: err.message,
       });
     }
-
-    if (req.user.role !== "restaurant_owner") {
-      return res.status(403).json({
-        status: false,
-        message: "Only restaurant owner can access",
-      });
-    }
-
-    const restaurant = await Restaurant.findOne({
-      owner: req.user.id,
-    });
-
-    if (!restaurant) {
-      return res.status(404).json({
-        status: false,
-        message: "Restaurant not found",
-      });
-    }
-
-    const count = await Food.countDocuments({
-      restaurant: restaurant._id,
-      approvalStatus: "pending",
-      isDeleted: false,
-    });
-
-    return res.status(200).json({
-      status: true,
-      count,
-    });
-
-  } catch (err) {
-    console.error("Pending Food Count Error:", err);
-
-    return res.status(500).json({
-      status: false,
-      message: err.message,
-    });
   }
-}
 }
 
 module.exports = new restaurantController();
