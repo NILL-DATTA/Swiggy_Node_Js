@@ -101,6 +101,13 @@ router.get(
   restaurantController.restaurantOrders
 );
 
+router.get(
+  "/restaurant/foods/pending-count",
+  AuthCheck,
+  verifyRestaurant,
+  authorizeRoles("restaurant_owner"),
+  restaurantController.pendingFoodCount
+);
 // router.patch(
 //   "/push-subscribe",
 //   AuthCheck,
