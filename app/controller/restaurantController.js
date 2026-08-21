@@ -1195,7 +1195,6 @@ class restaurantController {
 
   async pendingFoodCount(req, res) {
     try {
-      // Check authentication
       if (!req.user) {
         return res.status(401).json({
           status: false,
@@ -1203,7 +1202,6 @@ class restaurantController {
         });
       }
 
-      // Only restaurant owner can access
       if (req.user.role !== "restaurant_owner") {
         return res.status(403).json({
           status: false,
@@ -1211,7 +1209,6 @@ class restaurantController {
         });
       }
 
-      // Find restaurant belonging to logged-in owner
       const restaurant = await RestaurantSchema.findOne({
         owner: req.user.id,
       });
@@ -1223,7 +1220,6 @@ class restaurantController {
         });
       }
 
-      // Count pending foods of this restaurant
       const count = await Food.countDocuments({
         restaurant: restaurant._id,
         approvalStatus: "pending",

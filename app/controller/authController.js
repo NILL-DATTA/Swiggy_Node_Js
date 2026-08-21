@@ -1127,7 +1127,7 @@ class AuthController {
     }
   }
 
-  
+
   async singleOrder(req, res) {
     try {
       const { id } = req.params;
