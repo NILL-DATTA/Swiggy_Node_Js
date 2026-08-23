@@ -8,7 +8,7 @@ const authorizeRoles = require("../middleware/roleMiddleware")
 router.get("/user/food_list", AuthCheck, authorizeRoles("user"), userController.userfoodlist)
 router.get(
     "/user/restaurant-list",
-    authorizeRoles("user"),
+   
     userController.userRestaurantList
 );
 
