@@ -5,7 +5,7 @@ const AuthCheck = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/allowRoles");
 
 router.post("/auth/register", authController.signUp);
-
+router.post("/logout", authController.logout);
 router.post("/auth/otp", authController.userOtp);
 router.post("/auth/login", authController.signIn);
 router.post("/refresh-token", authController.refreshToken);
