@@ -70,7 +70,7 @@ class UserController {
             }
 
             // Get only approved restaurants
-            const restaurants = await Restaurant.find({
+            const restaurants = await RestaurantSchema.find({
                 status: "approved",
             }).select(
                 "restaurantName location outletType workingDays openingClosing isOpen status"
