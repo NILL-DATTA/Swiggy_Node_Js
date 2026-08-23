@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const { getCache, setCache } = require("../../services/redisservice")
 const foodModel = require("../model/foodModel")
 const RestaurantSchema = require("../model/RestaurantModel/restaurantModel");
