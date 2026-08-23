@@ -83,36 +83,32 @@ class AuthController {
     }
   }
 
+  async logout(req, res) {
+    try {
+      if (req.user?.id) {
+        await User.findByIdAndUpdate(req.user.id, {
+          $unset: { refreshToken: 1 },
+        });
+      }
 
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        sameSite: "strict",
+      });
 
-async logout(req, res) {
-  try {
-    if (req.user?.id) {
-      await User.findByIdAndUpdate(req.user.id, {
-        $unset: { refreshToken: 1 },
+      return res.status(200).json({
+        status: true,
+        message: "Logged out successfully",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+
+      return res.status(500).json({
+        status: false,
+        message: "Something went wrong while logging out",
       });
     }
-
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      sameSite: "strict",
-    });
-
-    return res.status(200).json({
-      status: true,
-      message: "Logged out successfully",
-    });
-  } catch (error) {
-    console.error("Logout error:", error);
-
-    return res.status(500).json({
-      status: false,
-      message: "Something went wrong while logging out",
-    });
   }
-}
-
-
 
   async userOtp(req, res) {
     try {
@@ -394,7 +390,6 @@ async logout(req, res) {
         });
       }
 
-
       if (!mongoose.Types.ObjectId.isValid(foodId)) {
         return res.status(400).json({
           status: false,
@@ -425,7 +420,6 @@ async logout(req, res) {
         });
       }
 
-
       if (!food.isAvailable) {
         return res.status(400).json({
           status: false,
@@ -442,14 +436,12 @@ async logout(req, res) {
         });
       }
 
-
       if (restaurant.status !== "approved") {
         return res.status(400).json({
           status: false,
           message: "Restaurant is not available",
         });
       }
-
 
       const openingClosing = restaurant.openingClosing;
 
@@ -466,58 +458,38 @@ async logout(req, res) {
 
       const now = new Date();
 
-      const currentMinutes =
-        now.getHours() * 60 + now.getMinutes();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       let isOpen = false;
-
 
       for (const slot of openingClosing.slots) {
         if (!slot.open || !slot.close) {
           continue;
         }
 
-        const [openHour, openMinute] = slot.open
-          .split(":")
-          .map(Number);
+        const [openHour, openMinute] = slot.open.split(":").map(Number);
 
-        const [closeHour, closeMinute] = slot.close
-          .split(":")
-          .map(Number);
+        const [closeHour, closeMinute] = slot.close.split(":").map(Number);
 
-        const openTime =
-          openHour * 60 + openMinute;
+        const openTime = openHour * 60 + openMinute;
 
-        const closeTime =
-          closeHour * 60 + closeMinute;
-
+        const closeTime = closeHour * 60 + closeMinute;
 
         if (openTime < closeTime) {
-          if (
-            currentMinutes >= openTime &&
-            currentMinutes <= closeTime
-          ) {
+          if (currentMinutes >= openTime && currentMinutes <= closeTime) {
             isOpen = true;
             break;
           }
-        }
-
-        else if (openTime > closeTime) {
-          if (
-            currentMinutes >= openTime ||
-            currentMinutes <= closeTime
-          ) {
+        } else if (openTime > closeTime) {
+          if (currentMinutes >= openTime || currentMinutes <= closeTime) {
             isOpen = true;
             break;
           }
-        }
-
-        else {
+        } else {
           isOpen = true;
           break;
         }
       }
-
 
       if (!isOpen) {
         return res.status(400).json({
@@ -527,10 +499,7 @@ async logout(req, res) {
       }
 
       const finalPrice =
-        food.discountPrice > 0
-          ? food.discountPrice
-          : food.basePrice;
-
+        food.discountPrice > 0 ? food.discountPrice : food.basePrice;
 
       let cart = await Cart.findOne({
         user: req.user.id,
@@ -538,12 +507,10 @@ async logout(req, res) {
 
       let cartChangedRestaurant = false;
 
-
       if (
         cart &&
         cart.restaurant &&
-        cart.restaurant.toString() !==
-        food.restaurant.toString()
+        cart.restaurant.toString() !== food.restaurant.toString()
       ) {
         cart.items = [];
         cart.restaurant = food.restaurant;
@@ -551,7 +518,6 @@ async logout(req, res) {
 
         cartChangedRestaurant = true;
       }
-
 
       if (!cart) {
         cart = new Cart({
@@ -563,31 +529,23 @@ async logout(req, res) {
       }
 
       const itemIndex = cart.items.findIndex(
-        (item) =>
-          item.food.toString() === foodId.toString()
+        (item) => item.food.toString() === foodId.toString(),
       );
 
-
       if (itemIndex !== -1) {
-        const newQuantity =
-          cart.items[itemIndex].quantity + quantity;
+        const newQuantity = cart.items[itemIndex].quantity + quantity;
 
         if (newQuantity > 10) {
           return res.status(400).json({
             status: false,
-            message:
-              "Maximum 10 items allowed for this food",
+            message: "Maximum 10 items allowed for this food",
           });
         }
 
-        cart.items[itemIndex].quantity =
-          newQuantity;
+        cart.items[itemIndex].quantity = newQuantity;
 
-        cart.items[itemIndex].price =
-          finalPrice;
-      }
-
-      else {
+        cart.items[itemIndex].price = finalPrice;
+      } else {
         cart.items.push({
           food: food._id,
           quantity: quantity,
@@ -595,29 +553,17 @@ async logout(req, res) {
         });
       }
 
-      cart.totalAmount = cart.items.reduce(
-        (total, item) => {
-          return (
-            total +
-            item.price * item.quantity
-          );
-        },
-        0
-      );
+      cart.totalAmount = cart.items.reduce((total, item) => {
+        return total + item.price * item.quantity;
+      }, 0);
       await cart.save();
 
-      const updatedCart = await Cart.findById(
-        cart._id
-      )
-        .populate(
-          "restaurant",
-          "name"
-        )
+      const updatedCart = await Cart.findById(cart._id)
+        .populate("restaurant", "name")
         .populate(
           "items.food",
-          "itemName basePrice discountPrice image foodType isVeg category cuisine"
+          "itemName basePrice discountPrice image foodType isVeg category cuisine",
         );
-
 
       return res.status(200).json({
         status: true,
@@ -627,10 +573,7 @@ async logout(req, res) {
         data: updatedCart,
       });
     } catch (error) {
-      console.error(
-        "Add To Cart Error:",
-        error
-      );
+      console.error("Add To Cart Error:", error);
 
       return res.status(500).json({
         status: false,
@@ -646,34 +589,42 @@ async logout(req, res) {
 
       console.log(userId, "userId");
 
+      // Only users can access cart
+      if (req.user.role !== "user") {
+        return res.status(403).json({
+          status: false,
+          message: "Only users can access cart",
+        });
+      }
+
       const cart = await Cart.findOne({ user: userId })
         .populate("restaurant")
         .populate("items.food");
 
+      // Cart না থাকলে empty array return করবে
       if (!cart) {
-        return res.status(404).json({ message: "Cart not found" });
-      }
-
-      if (req.user.role !== "user") {
-        return res.status(403).json({
-          status: false,
-          message: "Only users can add to cart",
+        return res.status(200).json({
+          status: true,
+          message: "Cart is empty",
+          data: [],
         });
       }
 
       return res.status(200).json({
         status: true,
-        message: "Cart item fetch successfully",
+        message: "Cart item fetched successfully",
         data: cart,
       });
     } catch (err) {
+      console.error("Cart List Error:", err);
+
       return res.status(500).json({
         status: false,
-        message: err.message,
+        message: "Internal server error",
+        error: err.message,
       });
     }
   }
-
   async removeDataCart(req, res) {
     try {
       const { foodId } = req.params;
@@ -706,7 +657,7 @@ async logout(req, res) {
       }
 
       const itemIndex = cart.items.findIndex(
-        (item) => item.food.toString() === foodId.toString()
+        (item) => item.food.toString() === foodId.toString(),
       );
 
       if (itemIndex === -1) {
@@ -735,9 +686,8 @@ async logout(req, res) {
       }
 
       cart.totalAmount = cart.items.reduce(
-        (total, item) =>
-          total + item.price * item.quantity,
-        0
+        (total, item) => total + item.price * item.quantity,
+        0,
       );
 
       await cart.save();
@@ -866,6 +816,10 @@ async logout(req, res) {
     try {
       session.startTransaction();
 
+      // =========================
+      // 1. Find Cart
+      // =========================
+
       const cart = await Cart.findOne({
         user: req.user.id,
       }).session(session);
@@ -879,6 +833,10 @@ async logout(req, res) {
         });
       }
 
+      // =========================
+      // 2. Check Cart Items
+      // =========================
+
       if (!cart.items || cart.items.length === 0) {
         await session.abortTransaction();
 
@@ -888,9 +846,13 @@ async logout(req, res) {
         });
       }
 
-      const restaurant = await Restaurant.findById(
-        cart.restaurant
-      ).session(session);
+      // =========================
+      // 3. Check Restaurant
+      // =========================
+
+      const restaurant = await Restaurant.findById(cart.restaurant).session(
+        session,
+      );
 
       if (!restaurant) {
         await session.abortTransaction();
@@ -910,6 +872,9 @@ async logout(req, res) {
         });
       }
 
+      // =========================
+      // 4. Validate Address
+      // =========================
 
       let { address } = req.body;
 
@@ -928,9 +893,15 @@ async logout(req, res) {
 
       address = address.trim();
 
+      // =========================
+      // 5. Get Food IDs
+      // =========================
 
       const foodIds = cart.items.map((item) => item.food);
 
+      // =========================
+      // 6. Find Foods
+      // =========================
 
       const foods = await Food.find({
         _id: {
@@ -947,6 +918,9 @@ async logout(req, res) {
         });
       }
 
+      // =========================
+      // 7. Create Food Map
+      // =========================
 
       const foodMap = {};
 
@@ -954,6 +928,9 @@ async logout(req, res) {
         foodMap[food._id.toString()] = food;
       });
 
+      // =========================
+      // 8. Prepare Order Items
+      // =========================
 
       const orderItems = [];
 
@@ -962,74 +939,112 @@ async logout(req, res) {
       for (const item of cart.items) {
         const food = foodMap[item.food.toString()];
 
+        // -------------------------
+        // Food exists?
+        // -------------------------
 
         if (!food) {
+          throw new Error(`Food item not found: ${item.food}`);
+        }
+
+        // -------------------------
+        // Food deleted?
+        // -------------------------
+
+        if (food.isDeleted) {
           throw new Error(
-            `Food item not found: ${item.food}`
+            `${food.itemName || "Food item"} is no longer available`,
           );
         }
 
+        // -------------------------
+        // Food approved?
+        // -------------------------
+
+        if (food.approvalStatus !== "approved") {
+          throw new Error(`${food.itemName || "Food item"} is not approved`);
+        }
+
+        // -------------------------
+        // Food available?
+        // -------------------------
 
         if (!food.isAvailable) {
-          throw new Error(
-            `${food.itemName || "Food item"} is not available`
-          );
+          throw new Error(`${food.itemName || "Food item"} is not available`);
         }
 
+        // -------------------------
+        // Check Restaurant
+        // -------------------------
 
         if (
-          food.restaurant.toString() !==
-          cart.restaurant.toString()
+          !food.restaurant ||
+          food.restaurant.toString() !== cart.restaurant.toString()
         ) {
-          throw new Error(
-            "Invalid cart items: multiple restaurants"
-          );
+          throw new Error("Invalid cart items: multiple restaurants");
         }
+
+        // -------------------------
+        // Validate Quantity
+        // -------------------------
 
         const quantity = Number(item.quantity);
 
-        if (
-          !Number.isInteger(quantity) ||
-          quantity <= 0
-        ) {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
           throw new Error(
-            `Invalid quantity for food: ${food.itemName || food._id}`
+            `Invalid quantity for food: ${food.itemName || food._id}`,
           );
         }
 
+        if (quantity > 10) {
+          throw new Error(
+            `Maximum 10 items allowed for ${food.itemName || food._id}`,
+          );
+        }
+
+        // =========================
+        // Calculate Price
+        // =========================
 
         let price;
 
-        if (
-          food.discountPrice !== undefined &&
-          food.discountPrice !== null &&
-          food.discountPrice !== ""
-        ) {
-          price = Number(food.discountPrice);
+        const discountPrice = Number(food.discountPrice);
+
+        const basePrice = Number(food.basePrice);
+
+        // Discount price > 0 হলে discount price
+        // না হলে base price
+        if (Number.isFinite(discountPrice) && discountPrice > 0) {
+          price = discountPrice;
         } else {
-          price = Number(food.basePrice);
+          price = basePrice;
         }
 
+        // -------------------------
+        // Validate Price
+        // -------------------------
 
-        if (
-          !Number.isFinite(price) ||
-          price <= 0
-        ) {
+        if (!Number.isFinite(price) || price <= 0) {
           throw new Error(
-            `Invalid price for food: ${food.itemName || food._id
-            }`
+            `Invalid price for food: ${food.itemName || food._id}`,
           );
         }
 
+        // =========================
+        // Item Total
+        // =========================
 
         const itemTotal = price * quantity;
 
-        if (!Number.isFinite(itemTotal)) {
+        if (!Number.isFinite(itemTotal) || itemTotal <= 0) {
           throw new Error(
-            `Invalid item total for food: ${food.itemName || food._id
-            }`
+            `Invalid item total for food: ${food.itemName || food._id}`,
           );
         }
+
+        // =========================
+        // Push Order Item
+        // =========================
 
         orderItems.push({
           food: food._id,
@@ -1037,21 +1052,22 @@ async logout(req, res) {
           price: price,
         });
 
-
         totalAmount += itemTotal;
       }
 
+      // =========================
+      // 9. Validate Total
+      // =========================
 
-      if (
-        !Number.isFinite(totalAmount) ||
-        totalAmount <= 0
-      ) {
+      if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
         throw new Error("Invalid total amount");
       }
 
-
       totalAmount = Number(totalAmount.toFixed(2));
 
+      // =========================
+      // 10. Create Order
+      // =========================
 
       const order = await Order.create(
         [
@@ -1071,32 +1087,39 @@ async logout(req, res) {
         ],
         {
           session,
-        }
+        },
       );
 
+      // =========================
+      // 11. Delete Cart
+      // =========================
 
       await Cart.findOneAndDelete({
         user: req.user.id,
       }).session(session);
 
+      // =========================
+      // 12. Commit Transaction
+      // =========================
 
       await session.commitTransaction();
 
       session.endSession();
 
+      // =========================
+      // 13. Get Populated Order
+      // =========================
 
-      const populatedOrder = await Order.findById(
-        order[0]._id
-      )
-        .populate(
-          "restaurant",
-          "name"
-        )
+      const populatedOrder = await Order.findById(order[0]._id)
+        .populate("restaurant", "restaurantName location status")
         .populate(
           "items.food",
-          "itemName basePrice discountPrice image foodType isVeg category cuisine"
+          "itemName basePrice discountPrice image foodType isVeg category cuisine",
         );
 
+      // =========================
+      // 14. Success Response
+      // =========================
 
       return res.status(201).json({
         status: true,
@@ -1104,6 +1127,9 @@ async logout(req, res) {
         data: populatedOrder,
       });
     } catch (err) {
+      // =========================
+      // Rollback Transaction
+      // =========================
 
       if (session.inTransaction()) {
         await session.abortTransaction();
@@ -1111,20 +1137,14 @@ async logout(req, res) {
 
       session.endSession();
 
-      console.error(
-        "Place Order Error:",
-        err
-      );
+      console.error("Place Order Error:", err);
 
       return res.status(500).json({
         status: false,
-        message:
-          err.message ||
-          "Internal server error",
+        message: err.message || "Internal server error",
       });
     }
   }
-
   async myOrder(req, res) {
     try {
       if (req.user.role !== "user") {
@@ -1140,7 +1160,7 @@ async logout(req, res) {
         .populate("restaurant", "restaurantName")
         .populate(
           "items.food",
-          "itemName basePrice discountPrice image foodType isVeg"
+          "itemName basePrice discountPrice image foodType isVeg",
         )
         .sort({ createdAt: -1 });
 
@@ -1157,7 +1177,6 @@ async logout(req, res) {
       });
     }
   }
-
 
   async singleOrder(req, res) {
     try {
@@ -1185,7 +1204,7 @@ async logout(req, res) {
         .populate("restaurant", "restaurantName")
         .populate(
           "items.food",
-          "itemName basePrice discountPrice image foodType isVeg category cuisine"
+          "itemName basePrice discountPrice image foodType isVeg category cuisine",
         );
 
       if (!order) {
@@ -1341,9 +1360,9 @@ async logout(req, res) {
       }
 
       if (req.user.role === "restaurant_owner") {
-        const restaurant = await Restaurant.findById(
-          order.restaurant
-        ).select("owner");
+        const restaurant = await Restaurant.findById(order.restaurant).select(
+          "owner",
+        );
 
         if (!restaurant) {
           return res.status(404).json({
