@@ -283,25 +283,35 @@ async approveFood(req, res) {
     });
   }
 }
-  async pendingFoodList(req, res) {
-    try {
-      const foods = await Food.find({
-        approvalStatus: "pending",
-      }).sort({ createdAt: -1 });
+async pendingFoodList(req, res) {
+  try {
+    const foods = await Food.find({
+      approvalStatus: "pending",
+    })
+      .populate(
+        "restaurant",
+        "restaurantName location status"
+      )
+      .sort({ createdAt: -1 });
 
-      return res.status(200).json({
-        success: true,
-        count: foods.length,
-        data: foods,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: "Something went wrong",
-        error: error.message,
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      count: foods.length,
+      data: foods,
+    });
+  } catch (error) {
+    console.error(
+      "Pending Food List Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error.message,
+    });
   }
+}
 
 }
 
