@@ -12,4 +12,12 @@ router.get(
     userController.userRestaurantList
 );
 
+router.get(
+  "/user/restaurant/:restaurantId/foods",
+
+  AuthCheck,
+  authorizeRoles("user"),
+  userController.userRestaurantFoodList,
+);
+
 module.exports = router;

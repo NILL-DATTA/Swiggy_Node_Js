@@ -12,7 +12,12 @@ router.post(
   AuthCheck,
   restaurantController.applyRestaurant,
 );
-router.post("/restaurant/otp", AuthCheck, authorizeRoles("user"), restaurantController.verifyRestaurantOtp);
+router.post(
+  "/restaurant/otp",
+  AuthCheck,
+  authorizeRoles("user"),
+  restaurantController.verifyRestaurantOtp,
+);
 router.post(
   "/restaurant/details",
   AuthCheck,
@@ -23,7 +28,7 @@ router.post(
 router.post(
   "/restaurant/resend-otp",
   AuthCheck,
-  restaurantController.resendRestaurantOtp
+  restaurantController.resendRestaurantOtp,
 );
 
 router.post(
@@ -37,7 +42,7 @@ router.post(
   "/partner-contract",
   AuthCheck,
   authorizeRoles("user"),
-  restaurantController.acceptPartnerContract
+  restaurantController.acceptPartnerContract,
 );
 
 router.post(
@@ -49,31 +54,41 @@ router.post(
   AuthCheck,
   authorizeRoles("restaurant_owner"),
   upload.single("image"),
-  restaurantController.addFood
+  restaurantController.addFood,
 );
 
 router.delete(
   "/food/:id",
   AuthCheck,
   authorizeRoles("restaurant_owner"),
-  restaurantController.deleteFood
+  restaurantController.deleteFood,
 );
-router.get("/food/list", AuthCheck, authorizeRoles("restaurant_owner"), restaurantController.getAllFoods);
+router.get(
+  "/food/list",
+  AuthCheck,
+  authorizeRoles("restaurant_owner"),
+  restaurantController.getAllFoods,
+);
 
-router.get("/food/details/:id", AuthCheck, authorizeRoles("restaurant_owner"), restaurantController.getFoodById);
+router.get(
+  "/food/details/:id",
+  AuthCheck,
+  authorizeRoles("restaurant_owner"),
+  restaurantController.getFoodById,
+);
 
 router.get(
   "/my-restaurant",
   AuthCheck,
   authorizeRoles("restaurant_owner"),
-  restaurantController.getMyRestaurant
+  restaurantController.getMyRestaurant,
 );
 
 router.patch(
   "/:id/toggle-availability",
   AuthCheck,
   authorizeRoles("restaurant_owner"),
-  restaurantController.toggleAvailability
+  restaurantController.toggleAvailability,
 );
 
 router.post(
@@ -82,23 +97,22 @@ router.post(
   verifyRestaurant,
   authorizeRoles("restaurant_owner"),
   upload.single("image"),
-  restaurantController.editmenu
+  restaurantController.editmenu,
 );
 
 router.patch(
   "/restaurant/status",
   AuthCheck,
   verifyRestaurant,
-  restaurantController.restaurantStatus
+  restaurantController.restaurantStatus,
 );
-
 
 router.get(
   "/restaurant/orders",
   AuthCheck,
   verifyRestaurant,
   authorizeRoles("restaurant_owner"),
-  restaurantController.restaurantOrders
+  restaurantController.restaurantOrders,
 );
 
 router.get(
@@ -106,8 +120,10 @@ router.get(
   AuthCheck,
   verifyRestaurant,
   authorizeRoles("restaurant_owner"),
-  restaurantController.pendingFoodCount
+  restaurantController.pendingFoodCount,
 );
+
+
 // router.patch(
 //   "/push-subscribe",
 //   AuthCheck,

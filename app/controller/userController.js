@@ -99,6 +99,86 @@ class UserController {
         }
     }
 
+
+    async userRestaurantFoodList(req, res) {
+    try {
+        const { restaurantId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid restaurant ID",
+            });
+        }
+
+        const restaurant = await RestaurantSchema.findOne({
+            _id: restaurantId,
+            status: "approved",
+        }).select(
+            "restaurantName location outletType workingDays openingClosing isOpen status"
+        );
+
+        if (!restaurant) {
+            return res.status(404).json({
+                success: false,
+                message: "Restaurant not found or not approved",
+            });
+        }
+
+        const cachekey = `foods:restaurant:${restaurantId}`;
+
+        const cacheFoods = await getCache(cachekey);
+
+        if (cacheFoods) {
+            return res.status(200).json({
+                success: true,
+                fromCache: true,
+                message: "Restaurant food list fetched successfully.",
+                data: cacheFoods.data,
+            });
+        }
+
+        const foods = await foodModel
+            .find({
+                restaurant: restaurantId,
+                isDeleted: false,
+                isAvailable: true,
+                approvalStatus: "approved",
+            })
+            .populate(
+                "restaurant",
+                "restaurantName location status"
+            )
+            .sort({ createdAt: -1 });
+
+        const response = {
+            restaurant: restaurant,
+            foods: foods,
+        };
+
+        await setCache(cachekey, response, 60);
+
+        return res.status(200).json({
+            success: true,
+            fromCache: false,
+            message: "Restaurant food list fetched successfully.",
+            ...response,
+        });
+
+    } catch (err) {
+        console.error(
+            "User Restaurant Food List Error:",
+            err
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: err.message,
+        });
+    }
+}
+
 }
 
 
