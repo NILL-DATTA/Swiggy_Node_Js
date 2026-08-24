@@ -625,16 +625,12 @@ class AuthController {
       });
     }
   }
+
+
+
   async removeDataCart(req, res) {
     try {
       const { foodId } = req.params;
-
-      if (!req.user) {
-        return res.status(401).json({
-          status: false,
-          message: "Unauthorized",
-        });
-      }
 
       if (req.user.role !== "user") {
         return res.status(403).json({
@@ -657,7 +653,7 @@ class AuthController {
       }
 
       const itemIndex = cart.items.findIndex(
-        (item) => item.food.toString() === foodId.toString(),
+        (item) => item.food.toString() === foodId.toString()
       );
 
       if (itemIndex === -1) {
@@ -667,11 +663,7 @@ class AuthController {
         });
       }
 
-      if (cart.items[itemIndex].quantity > 1) {
-        cart.items[itemIndex].quantity -= 1;
-      } else {
-        cart.items.splice(itemIndex, 1);
-      }
+      cart.items.splice(itemIndex, 1);
 
       if (cart.items.length === 0) {
         await Cart.deleteOne({
@@ -687,7 +679,7 @@ class AuthController {
 
       cart.totalAmount = cart.items.reduce(
         (total, item) => total + item.price * item.quantity,
-        0,
+        0
       );
 
       await cart.save();
@@ -710,7 +702,6 @@ class AuthController {
 
   async refreshToken(req, res) {
     try {
-      // get refresh token from body
       const { refreshToken } = req.body;
 
       // check token exists

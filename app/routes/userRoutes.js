@@ -14,7 +14,6 @@ router.get(
 
 router.get(
   "/user/restaurant/:restaurantId/foods",
-
   AuthCheck,
   authorizeRoles("user"),
   userController.userRestaurantFoodList,
