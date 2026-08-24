@@ -13,6 +13,7 @@ const Restaurant = require("../model/RestaurantModel/restaurantModel");
 const { default: mongoose } = require("mongoose");
 const Food = require("../model/foodModel");
 const Order = require("../model/orderModel");
+const { getIO } = require("../socket/socket");
 
 class AuthController {
   async signUp(req, res) {
@@ -807,10 +808,6 @@ class AuthController {
     try {
       session.startTransaction();
 
-      // =========================
-      // 1. Find Cart
-      // =========================
-
       const cart = await Cart.findOne({
         user: req.user.id,
       }).session(session);
@@ -824,9 +821,6 @@ class AuthController {
         });
       }
 
-      // =========================
-      // 2. Check Cart Items
-      // =========================
 
       if (!cart.items || cart.items.length === 0) {
         await session.abortTransaction();
@@ -837,13 +831,10 @@ class AuthController {
         });
       }
 
-      // =========================
-      // 3. Check Restaurant
-      // =========================
 
-      const restaurant = await Restaurant.findById(cart.restaurant).session(
-        session,
-      );
+      const restaurant = await Restaurant.findById(
+        cart.restaurant,
+      ).session(session);
 
       if (!restaurant) {
         await session.abortTransaction();
@@ -863,10 +854,6 @@ class AuthController {
         });
       }
 
-      // =========================
-      // 4. Validate Address
-      // =========================
-
       let { address } = req.body;
 
       if (
@@ -884,15 +871,9 @@ class AuthController {
 
       address = address.trim();
 
-      // =========================
-      // 5. Get Food IDs
-      // =========================
 
       const foodIds = cart.items.map((item) => item.food);
 
-      // =========================
-      // 6. Find Foods
-      // =========================
 
       const foods = await Food.find({
         _id: {
@@ -909,19 +890,12 @@ class AuthController {
         });
       }
 
-      // =========================
-      // 7. Create Food Map
-      // =========================
-
       const foodMap = {};
 
       foods.forEach((food) => {
         foodMap[food._id.toString()] = food;
       });
 
-      // =========================
-      // 8. Prepare Order Items
-      // =========================
 
       const orderItems = [];
 
@@ -930,17 +904,12 @@ class AuthController {
       for (const item of cart.items) {
         const food = foodMap[item.food.toString()];
 
-        // -------------------------
-        // Food exists?
-        // -------------------------
-
         if (!food) {
-          throw new Error(`Food item not found: ${item.food}`);
+          throw new Error(
+            `Food item not found: ${item.food}`,
+          );
         }
 
-        // -------------------------
-        // Food deleted?
-        // -------------------------
 
         if (food.isDeleted) {
           throw new Error(
@@ -948,94 +917,92 @@ class AuthController {
           );
         }
 
-        // -------------------------
-        // Food approved?
-        // -------------------------
 
         if (food.approvalStatus !== "approved") {
-          throw new Error(`${food.itemName || "Food item"} is not approved`);
+          throw new Error(
+            `${food.itemName || "Food item"} is not approved`,
+          );
         }
 
-        // -------------------------
-        // Food available?
-        // -------------------------
 
         if (!food.isAvailable) {
-          throw new Error(`${food.itemName || "Food item"} is not available`);
+          throw new Error(
+            `${food.itemName || "Food item"} is not available`,
+          );
         }
 
-        // -------------------------
-        // Check Restaurant
-        // -------------------------
 
         if (
           !food.restaurant ||
-          food.restaurant.toString() !== cart.restaurant.toString()
+          food.restaurant.toString() !==
+          cart.restaurant.toString()
         ) {
-          throw new Error("Invalid cart items: multiple restaurants");
+          throw new Error(
+            "Invalid cart items: multiple restaurants",
+          );
         }
 
-        // -------------------------
-        // Validate Quantity
-        // -------------------------
 
         const quantity = Number(item.quantity);
 
-        if (!Number.isInteger(quantity) || quantity <= 0) {
+        if (
+          !Number.isInteger(quantity) ||
+          quantity <= 0
+        ) {
           throw new Error(
-            `Invalid quantity for food: ${food.itemName || food._id}`,
+            `Invalid quantity for food: ${food.itemName || food._id
+            }`,
           );
         }
 
         if (quantity > 10) {
           throw new Error(
-            `Maximum 10 items allowed for ${food.itemName || food._id}`,
+            `Maximum 10 items allowed for ${food.itemName || food._id
+            }`,
           );
         }
 
-        // =========================
-        // Calculate Price
-        // =========================
 
-        let price;
-
-        const discountPrice = Number(food.discountPrice);
+        const discountPrice = Number(
+          food.discountPrice,
+        );
 
         const basePrice = Number(food.basePrice);
 
-        // Discount price > 0 হলে discount price
-        // না হলে base price
-        if (Number.isFinite(discountPrice) && discountPrice > 0) {
+        let price;
+
+        if (
+          Number.isFinite(discountPrice) &&
+          discountPrice > 0
+        ) {
           price = discountPrice;
         } else {
           price = basePrice;
         }
 
-        // -------------------------
-        // Validate Price
-        // -------------------------
 
-        if (!Number.isFinite(price) || price <= 0) {
+        if (
+          !Number.isFinite(price) ||
+          price <= 0
+        ) {
           throw new Error(
-            `Invalid price for food: ${food.itemName || food._id}`,
+            `Invalid price for food: ${food.itemName || food._id
+            }`,
           );
         }
-
-        // =========================
-        // Item Total
-        // =========================
 
         const itemTotal = price * quantity;
 
-        if (!Number.isFinite(itemTotal) || itemTotal <= 0) {
+        if (
+          !Number.isFinite(itemTotal) ||
+          itemTotal <= 0
+        ) {
           throw new Error(
-            `Invalid item total for food: ${food.itemName || food._id}`,
+            `Invalid item total for food: ${food.itemName || food._id
+            }`,
           );
         }
 
-        // =========================
-        // Push Order Item
-        // =========================
 
         orderItems.push({
           food: food._id,
@@ -1046,19 +1013,17 @@ class AuthController {
         totalAmount += itemTotal;
       }
 
-      // =========================
-      // 9. Validate Total
-      // =========================
-
-      if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+      if (
+        !Number.isFinite(totalAmount) ||
+        totalAmount <= 0
+      ) {
         throw new Error("Invalid total amount");
       }
 
-      totalAmount = Number(totalAmount.toFixed(2));
+      totalAmount = Number(
+        totalAmount.toFixed(2),
+      );
 
-      // =========================
-      // 10. Create Order
-      // =========================
 
       const order = await Order.create(
         [
@@ -1081,36 +1046,48 @@ class AuthController {
         },
       );
 
-      // =========================
-      // 11. Delete Cart
-      // =========================
 
       await Cart.findOneAndDelete({
         user: req.user.id,
       }).session(session);
 
-      // =========================
-      // 12. Commit Transaction
-      // =========================
 
       await session.commitTransaction();
 
       session.endSession();
 
-      // =========================
-      // 13. Get Populated Order
-      // =========================
 
-      const populatedOrder = await Order.findById(order[0]._id)
-        .populate("restaurant", "restaurantName location status")
+      const populatedOrder = await Order.findById(
+        order[0]._id,
+      )
+        .populate(
+          "restaurant",
+          "restaurantName location status",
+        )
         .populate(
           "items.food",
           "itemName basePrice discountPrice image foodType isVeg category cuisine",
         );
 
-      // =========================
-      // 14. Success Response
-      // =========================
+
+      const io = getIO();
+
+      const restaurantRoom = `restaurant_${cart.restaurant.toString()}`;
+
+      io.to(restaurantRoom).emit(
+        "restaurant:new-order",
+        {
+          orderId: populatedOrder._id,
+          restaurantId: cart.restaurant,
+          message: "New order received",
+          order: populatedOrder,
+        },
+      );
+
+      console.log(
+        `New order emitted to ${restaurantRoom}`,
+      );
+
 
       return res.status(201).json({
         status: true,
@@ -1118,9 +1095,6 @@ class AuthController {
         data: populatedOrder,
       });
     } catch (err) {
-      // =========================
-      // Rollback Transaction
-      // =========================
 
       if (session.inTransaction()) {
         await session.abortTransaction();
@@ -1128,14 +1102,20 @@ class AuthController {
 
       session.endSession();
 
-      console.error("Place Order Error:", err);
+      console.error(
+        "Place Order Error:",
+        err,
+      );
 
       return res.status(500).json({
         status: false,
-        message: err.message || "Internal server error",
+        message:
+          err.message ||
+          "Internal server error",
       });
     }
   }
+
   async myOrder(req, res) {
     try {
       if (req.user.role !== "user") {
