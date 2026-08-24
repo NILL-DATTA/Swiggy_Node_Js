@@ -560,8 +560,7 @@ class restaurantController {
         status: restaurant.status,
       });
 
-      // ---------------- STEP VALIDATION ----------------
-      // Contract allowed only after documents step
+    
       if (restaurant.onboardingStep < 2) {
         return res.status(400).json({
           success: false,
@@ -569,7 +568,7 @@ class restaurantController {
         });
       }
 
-      // Already accepted check
+  
       if (restaurant.contract?.accepted) {
         return res.status(409).json({
           success: false,
@@ -577,7 +576,6 @@ class restaurantController {
         });
       }
 
-      // ---------------- REQUIRED SECTION CHECK ----------------
       const requiredSections = [
         "terms_of_service",
         "commission_payment_terms",
@@ -596,7 +594,6 @@ class restaurantController {
         });
       }
 
-      // ---------------- SAVE CONTRACT ----------------
       restaurant.contract = {
         accepted: true,
         acceptedAt: date || new Date(),
@@ -614,7 +611,6 @@ class restaurantController {
         deviceInfo: req.headers["user-agent"],
       };
 
-      // ---------------- UPDATE ONBOARDING ----------------
       restaurant.onboardingStep = 3;
       restaurant.status = "review_pending";
 

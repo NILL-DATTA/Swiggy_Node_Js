@@ -602,7 +602,6 @@ class AuthController {
         .populate("restaurant")
         .populate("items.food");
 
-      // Cart না থাকলে empty array return করবে
       if (!cart) {
         return res.status(200).json({
           status: true,
