@@ -841,10 +841,8 @@ class restaurantController {
           $match: {
             restaurant: restaurant._id,
 
-         
             approvalStatus: "approved",
 
-       
             isDeleted: false,
           },
         },
