@@ -841,10 +841,10 @@ class restaurantController {
           $match: {
             restaurant: restaurant._id,
 
-            // Only approved foods
+         
             approvalStatus: "approved",
 
-            // Don't show deleted foods
+       
             isDeleted: false,
           },
         },
