@@ -10,7 +10,7 @@ function initSocket(server) {
     },
   });
 
-  // Client connected
+
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 

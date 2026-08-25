@@ -1299,20 +1299,14 @@ class AuthController {
 
       const allowedTransitions = {
         placed: ["accepted", "cancelled"],
-
         accepted: ["preparing", "cancelled"],
-
         preparing: ["out_for_delivery", "cancelled"],
-
         out_for_delivery: ["delivered"],
-
         delivered: [],
-
         cancelled: [],
       };
 
       const currentStatus = order.status;
-
       const nextStatuses = allowedTransitions[currentStatus];
 
       if (!nextStatuses) {
@@ -1330,9 +1324,9 @@ class AuthController {
       }
 
       if (req.user.role === "restaurant_owner") {
-        const restaurant = await Restaurant.findById(order.restaurant).select(
-          "owner",
-        );
+        const restaurant = await Restaurant.findById(
+          order.restaurant
+        ).select("owner");
 
         if (!restaurant) {
           return res.status(404).json({
@@ -1349,9 +1343,19 @@ class AuthController {
         }
       }
 
+
       order.status = status;
 
       await order.save();
+      const io = getIO();
+
+      io.emit("order:status", {
+        orderId: order._id,
+        userId: order.user,
+        restaurantId: order.restaurant,
+        previousStatus: currentStatus,
+        currentStatus: order.status,
+      });
 
       return res.status(200).json({
         status: true,
