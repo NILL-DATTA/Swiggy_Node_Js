@@ -807,6 +807,7 @@ class AuthController {
     try {
       session.startTransaction();
 
+
       const cart = await Cart.findOne({
         user: req.user.id,
       }).session(session);
@@ -832,7 +833,7 @@ class AuthController {
 
 
       const restaurant = await Restaurant.findById(
-        cart.restaurant,
+        cart.restaurant
       ).session(session);
 
       if (!restaurant) {
@@ -844,6 +845,7 @@ class AuthController {
         });
       }
 
+
       if (restaurant.status !== "approved") {
         await session.abortTransaction();
 
@@ -852,6 +854,16 @@ class AuthController {
           message: "Restaurant is not available",
         });
       }
+
+      if (!restaurant.isOpen) {
+        await session.abortTransaction();
+
+        return res.status(400).json({
+          status: false,
+          message: "Restaurant is currently closed",
+        });
+      }
+
 
       let { address } = req.body;
 
@@ -871,7 +883,9 @@ class AuthController {
       address = address.trim();
 
 
-      const foodIds = cart.items.map((item) => item.food);
+      const foodIds = cart.items.map(
+        (item) => item.food
+      );
 
 
       const foods = await Food.find({
@@ -889,6 +903,7 @@ class AuthController {
         });
       }
 
+
       const foodMap = {};
 
       foods.forEach((food) => {
@@ -901,32 +916,31 @@ class AuthController {
       let totalAmount = 0;
 
       for (const item of cart.items) {
-        const food = foodMap[item.food.toString()];
+        const food =
+          foodMap[item.food.toString()];
 
         if (!food) {
           throw new Error(
-            `Food item not found: ${item.food}`,
+            `Food item not found: ${item.food}`
           );
         }
-
 
         if (food.isDeleted) {
           throw new Error(
-            `${food.itemName || "Food item"} is no longer available`,
+            `${food.itemName || "Food item"} is no longer available`
           );
         }
 
-
         if (food.approvalStatus !== "approved") {
           throw new Error(
-            `${food.itemName || "Food item"} is not approved`,
+            `${food.itemName || "Food item"} is not approved`
           );
         }
 
 
         if (!food.isAvailable) {
           throw new Error(
-            `${food.itemName || "Food item"} is not available`,
+            `${food.itemName || "Food item"} is not available`
           );
         }
 
@@ -937,7 +951,7 @@ class AuthController {
           cart.restaurant.toString()
         ) {
           throw new Error(
-            "Invalid cart items: multiple restaurants",
+            "Invalid cart items: multiple restaurants"
           );
         }
 
@@ -950,23 +964,25 @@ class AuthController {
         ) {
           throw new Error(
             `Invalid quantity for food: ${food.itemName || food._id
-            }`,
+            }`
           );
         }
 
         if (quantity > 10) {
           throw new Error(
             `Maximum 10 items allowed for ${food.itemName || food._id
-            }`,
+            }`
           );
         }
 
 
         const discountPrice = Number(
-          food.discountPrice,
+          food.discountPrice
         );
 
-        const basePrice = Number(food.basePrice);
+        const basePrice = Number(
+          food.basePrice
+        );
 
         let price;
 
@@ -979,18 +995,19 @@ class AuthController {
           price = basePrice;
         }
 
-
         if (
           !Number.isFinite(price) ||
           price <= 0
         ) {
           throw new Error(
             `Invalid price for food: ${food.itemName || food._id
-            }`,
+            }`
           );
         }
 
-        const itemTotal = price * quantity;
+
+        const itemTotal =
+          price * quantity;
 
         if (
           !Number.isFinite(itemTotal) ||
@@ -998,7 +1015,7 @@ class AuthController {
         ) {
           throw new Error(
             `Invalid item total for food: ${food.itemName || food._id
-            }`,
+            }`
           );
         }
 
@@ -1009,6 +1026,7 @@ class AuthController {
           price: price,
         });
 
+
         totalAmount += itemTotal;
       }
 
@@ -1016,11 +1034,13 @@ class AuthController {
         !Number.isFinite(totalAmount) ||
         totalAmount <= 0
       ) {
-        throw new Error("Invalid total amount");
+        throw new Error(
+          "Invalid total amount"
+        );
       }
 
       totalAmount = Number(
-        totalAmount.toFixed(2),
+        totalAmount.toFixed(2)
       );
 
 
@@ -1042,7 +1062,7 @@ class AuthController {
         ],
         {
           session,
-        },
+        }
       );
 
 
@@ -1056,41 +1076,50 @@ class AuthController {
       session.endSession();
 
 
-      const populatedOrder = await Order.findById(
-        order[0]._id,
-      )
-        .populate(
-          "restaurant",
-          "restaurantName location status",
+      const populatedOrder =
+        await Order.findById(
+          order[0]._id
         )
-        .populate(
-          "items.food",
-          "itemName basePrice discountPrice image foodType isVeg category cuisine",
-        );
-
+          .populate(
+            "restaurant",
+            "restaurantName location status isOpen"
+          )
+          .populate(
+            "items.food",
+            "itemName basePrice discountPrice image foodType isVeg category cuisine"
+          );
 
       const io = getIO();
 
-      const restaurantRoom = `restaurant_${cart.restaurant.toString()}`;
+      const restaurantRoom =
+        `restaurant_${cart.restaurant.toString()}`;
 
       io.to(restaurantRoom).emit(
         "restaurant:new-order",
         {
           orderId: populatedOrder._id,
-          restaurantId: cart.restaurant,
-          message: "New order received",
+
+          restaurantId:
+            cart.restaurant,
+
+          message:
+            "New order received",
+
           order: populatedOrder,
-        },
+        }
       );
 
       console.log(
-        `New order emitted to ${restaurantRoom}`,
+        `New order emitted to ${restaurantRoom}`
       );
 
 
       return res.status(201).json({
         status: true,
-        message: "Order placed successfully",
+
+        message:
+          "Order placed successfully",
+
         data: populatedOrder,
       });
     } catch (err) {
@@ -1103,18 +1132,18 @@ class AuthController {
 
       console.error(
         "Place Order Error:",
-        err,
+        err
       );
 
       return res.status(500).json({
         status: false,
+
         message:
           err.message ||
           "Internal server error",
       });
     }
   }
-
   async myOrder(req, res) {
     try {
       if (req.user.role !== "user") {

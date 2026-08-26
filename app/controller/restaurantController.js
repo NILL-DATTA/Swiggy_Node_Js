@@ -560,7 +560,7 @@ class restaurantController {
         status: restaurant.status,
       });
 
-    
+
       if (restaurant.onboardingStep < 2) {
         return res.status(400).json({
           success: false,
@@ -568,7 +568,7 @@ class restaurantController {
         });
       }
 
-  
+
       if (restaurant.contract?.accepted) {
         return res.status(409).json({
           success: false,
@@ -1146,32 +1146,7 @@ class restaurantController {
         restaurant.pushSubscription
       );
 
-      // Push notification
-      // if (restaurant.pushSubscription) {
-      //   try {
-      //     await sendPushNotification(
-      //       restaurant.pushSubscription,
-      //       {
-      //         title: restaurant.isOpen
-      //           ? "Restaurant Open"
-      //           : "Restaurant Closed",
-
-      //         body: `${restaurant.restaurantName} is ${restaurant.isOpen ? "OPEN" : "CLOSED"
-      //           } now.`,
-
-      //         url: `/restaurant/${restaurant._id}`,
-      //       }
-      //     );
-
-      //     console.log("Push notification sent");
-
-      //   } catch (pushError) {
-      //     console.error(
-      //       "Push notification failed:",
-      //       pushError.message
-      //     );
-      //   }
-      // }
+     
 
       // Main API success
       return res.status(200).json({
