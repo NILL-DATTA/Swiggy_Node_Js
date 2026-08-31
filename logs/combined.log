@@ -1156,3 +1156,57 @@
 {"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-26 10:28:21"}
 {"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-26 10:28:21"}
 {"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-26 10:28:21"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:28:20"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:28:20"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:28:20"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:30:48"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:30:48"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:30:48"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:30:55"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:30:55"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:30:55"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:31:18"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:31:18"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:31:18"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:31:20"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:31:20"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:31:20"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:31:30"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:31:30"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:31:30"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:31:32"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:31:32"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:31:32"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:51:46"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:51:47"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:51:47"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:53:00"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:53:00"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:53:00"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:53:10"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:53:10"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:53:10"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:53:37"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:53:37"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:53:37"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:53:56"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:53:56"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:53:56"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:54:30"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:54:30"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:54:30"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:55:11"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:55:11"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:55:11"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:55:47"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:55:47"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:55:47"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:55:59"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:55:59"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:55:59"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:56:21"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:56:22"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:56:22"}
+{"level":"info","message":"Connecting to Redis at redis://127.0.0.1:6379...","service":"air-india-service","timestamp":"2026-08-31 12:56:50"}
+{"level":"info","message":"Redis connection initiated.","service":"air-india-service","timestamp":"2026-08-31 12:56:50"}
+{"level":"info","message":"Redis client is ready and caching is active.","service":"air-india-service","timestamp":"2026-08-31 12:56:50"}

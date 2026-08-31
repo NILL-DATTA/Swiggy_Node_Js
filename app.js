@@ -13,7 +13,7 @@ const userRoute = require("./app/routes/userRoutes");
 
 const connectDB = require("./config/dbcon");
 const { initSocket } = require("./app/socket/socket");
-
+const { swaggerUi, swaggerSpec } = require("./swaggar");
 const app = express();
 
 const server = http.createServer(app);
@@ -37,6 +37,11 @@ app.use(
   })
 );
 
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 // Body
 app.use(express.json());
 app.use(cookieParser());
@@ -67,6 +72,9 @@ const startServer = async () => {
     server.listen(PORT, () => {
       console.log(
         `Server running at http://localhost:${PORT}`
+      );
+      console.log(
+        `Swagger Docs: http://localhost:${PORT}/api-docs`
       );
     });
 
