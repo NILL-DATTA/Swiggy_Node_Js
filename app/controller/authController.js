@@ -627,7 +627,6 @@ class AuthController {
   }
 
 
-
   async removeDataCart(req, res) {
     try {
       const { foodId } = req.params;
@@ -663,7 +662,13 @@ class AuthController {
         });
       }
 
-      cart.items.splice(itemIndex, 1);
+      const item = cart.items[itemIndex];
+
+      if (item.quantity === 1) {
+        cart.items.splice(itemIndex, 1);
+      } else {
+        item.quantity -= 1;
+      }
 
       if (cart.items.length === 0) {
         await Cart.deleteOne({
@@ -686,7 +691,7 @@ class AuthController {
 
       return res.status(200).json({
         status: true,
-        message: "Item removed from cart successfully",
+        message: "Item quantity decreased successfully",
         data: cart,
       });
     } catch (err) {
@@ -704,7 +709,6 @@ class AuthController {
     try {
       const { refreshToken } = req.body;
 
-      // check token exists
       if (!refreshToken) {
         return res.status(401).json({
           status: false,
@@ -712,7 +716,6 @@ class AuthController {
         });
       }
 
-      // verify refresh token
       let decoded;
 
       try {
@@ -724,7 +727,6 @@ class AuthController {
         });
       }
       console.log("decoded:", decoded);
-      // find user
       const user = await User.findById(decoded.id).select("+refreshToken");
 
       console.log(user, "user");
@@ -735,7 +737,6 @@ class AuthController {
         });
       }
 
-      // check stored refresh token
       if (!user.refreshToken) {
         return res.status(403).json({
           status: false,
@@ -743,7 +744,6 @@ class AuthController {
         });
       }
 
-      // compare refresh token with hashed token
       const isMatch = await bcrypt.compare(refreshToken, user.refreshToken);
 
       if (!isMatch) {
@@ -753,7 +753,6 @@ class AuthController {
         });
       }
 
-      // generate new access token
       const newAccessToken = jwt.sign(
         {
           id: user._id,
@@ -765,7 +764,6 @@ class AuthController {
         },
       );
 
-      // generate new refresh token
       const newRefreshToken = jwt.sign(
         {
           id: user._id,
@@ -777,15 +775,12 @@ class AuthController {
         },
       );
 
-      // hash new refresh token
       const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
 
-      // save hashed refresh token
       user.refreshToken = hashedRefreshToken;
 
       await user.save();
 
-      // response
       return res.status(200).json({
         status: true,
         message: "Token refreshed successfully",

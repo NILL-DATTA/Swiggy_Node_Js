@@ -1146,7 +1146,7 @@ class restaurantController {
         restaurant.pushSubscription
       );
 
-     
+
 
       // Main API success
       return res.status(200).json({
