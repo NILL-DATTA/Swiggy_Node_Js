@@ -17,9 +17,7 @@ class AdminController {
       const { id } = req.params;
       const { status, reason } = req.body;
 
-      // =========================
-      // 1. Validate Status
-      // =========================
+
       const allowedStatus = ["approved", "rejected"];
 
       if (!allowedStatus.includes(status)) {
@@ -31,9 +29,7 @@ class AdminController {
         });
       }
 
-      // =========================
-      // 2. Find Restaurant
-      // =========================
+
       const restaurant = await Restaurant.findById(id).session(
         session
       );
@@ -47,9 +43,7 @@ class AdminController {
         });
       }
 
-      // =========================
-      // 3. Approved Cannot Change
-      // =========================
+
       if (restaurant.status === "approved") {
         await session.abortTransaction();
 
@@ -59,9 +53,7 @@ class AdminController {
         });
       }
 
-      // =========================
-      // 4. Same Status
-      // =========================
+
       if (restaurant.status === status) {
         await session.abortTransaction();
 
@@ -71,9 +63,7 @@ class AdminController {
         });
       }
 
-      // =========================
-      // 5. Update Restaurant
-      // =========================
+
       restaurant.status = status;
 
       if (status === "rejected" && reason) {
@@ -82,9 +72,7 @@ class AdminController {
 
       await restaurant.save({ session });
 
-      // =========================
-      // 6. Update User Role
-      // =========================
+
       const user = await User.findById(
         restaurant.owner
       ).session(session);
@@ -99,9 +87,6 @@ class AdminController {
         await user.save({ session });
       }
 
-      // =========================
-      // 7. Commit Transaction
-      // =========================
       await session.commitTransaction();
 
       session.endSession();
@@ -160,7 +145,7 @@ class AdminController {
       });
     }
   }
-  
+
   async rejectedApplication(req, res) {
     try {
       const { id } = req.params;
