@@ -6,7 +6,7 @@ const path = require("path");
 const fs = require("fs");
 const { default: mongoose } = require("mongoose");
 const { invalidatePattern } = require("../../services/redisservice");
-
+const { getIO } = require("../socket/socket");
 class AdminController {
   async updateRestaurantStatus(req, res) {
     const session = await mongoose.startSession();
